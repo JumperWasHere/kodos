@@ -40,7 +40,6 @@ const PaymentSchema = new Schema<IPaymentDocument>(
 )
 
 PaymentSchema.index({ userId: 1 })
-PaymentSchema.index({ stripePaymentIntentId: 1 })
 PaymentSchema.index({ status: 1, createdAt: -1 })
 
 export const Payment = models.Payment || model<IPaymentDocument>('Payment', PaymentSchema)

@@ -33,21 +33,20 @@ interface Props {
 export default function LessonPlayerClient({ lesson, subject, studentId }: Props) {
   const router = useRouter()
 
-  const handleComplete = async (score: number, xpEarned: number, coinsEarned: number) => {
-    // Post progress to API
-    try {
-      await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId: lesson._id,
-          score,
-          timeSpent: lesson.duration * 60,
-        }),
-      })
-    } catch {
-      // progress save is best-effort; gamification store already updated
-    }
+  const handleComplete = async (_score: number, _xpEarned: number, _coinsEarned: number, answers: Record<string, string | string[]>) => {
+    const response = await fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lessonId: lesson._id,
+        timeSpent: lesson.duration * 60,
+        answers,
+      }),
+    })
+
+    if (!response.ok) throw new Error('Unable to save lesson progress')
+    const payload = await response.json()
+    return payload.data as { xpEarned: number; coinsEarned: number }
   }
 
   const handleBack = () => {

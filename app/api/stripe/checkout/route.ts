@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
-import { stripe, STRIPE_PRICES } from '@/lib/stripe/config'
+import { isStripeConfigured, stripe, STRIPE_PRICES } from '@/lib/stripe/config'
 import { connectDB } from '@/lib/db/connect'
 import { User } from '@/lib/db/models'
 import { z } from 'zod'
@@ -11,6 +11,10 @@ const CheckoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isStripeConfigured) {
+      return NextResponse.json({ error: 'Payments are not configured' }, { status: 503 })
+    }
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -53,9 +53,7 @@ const UserSchema = new Schema<IUserDocument>(
   }
 )
 
-UserSchema.index({ email: 1 })
 UserSchema.index({ role: 1 })
-UserSchema.index({ googleId: 1 }, { sparse: true })
 
 export const User = models.User || model<IUserDocument>('User', UserSchema)
 export default User

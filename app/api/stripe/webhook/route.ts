@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe } from '@/lib/stripe/config'
+import { isStripeConfigured, stripe } from '@/lib/stripe/config'
 import { connectDB } from '@/lib/db/connect'
 import { Subscription, Student } from '@/lib/db/models'
 import Stripe from 'stripe'
 
 export async function POST(req: NextRequest) {
+  if (!isStripeConfigured) {
+    return NextResponse.json({ error: 'Payments are not configured' }, { status: 503 })
+  }
+
   const body = await req.text()
   const sig = (await headers()).get('stripe-signature')
 
