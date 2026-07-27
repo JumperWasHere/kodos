@@ -19,9 +19,15 @@ COPY . .
 
 # Provide build-time env vars required by Next.js config (no secrets here).
 # Real secrets (MONGODB_URI, NEXTAUTH_SECRET, STRIPE_* etc.) are injected at
-# runtime via Azure App Service → Configuration → Application Settings.
+# runtime via Railway / Azure App Service → Configuration → Application Settings.
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Placeholder values so NextAuth initialises cleanly during build.
+# These are overridden by real values injected at runtime.
+ENV NEXTAUTH_SECRET=build-time-placeholder-not-used-at-runtime
+ENV NEXTAUTH_URL=http://localhost:3000
+ENV AUTH_TRUST_HOST=true
+ENV MONGODB_URI=mongodb://placeholder-build-only
 
 RUN npm run build
 
