@@ -138,7 +138,6 @@ const StudentSchema = new Schema<IStudentDocument>(
   }
 )
 
-StudentSchema.index({ userId: 1 })
 StudentSchema.index({ parentId: 1 })
 StudentSchema.index({ level: -1, xp: -1 })
 StudentSchema.index({ streakDays: -1 })

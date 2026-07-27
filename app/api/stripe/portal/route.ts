@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
-import { stripe } from '@/lib/stripe/config'
+import { isStripeConfigured, stripe } from '@/lib/stripe/config'
 import { connectDB } from '@/lib/db/connect'
 import { Subscription } from '@/lib/db/models'
 
 // POST /api/stripe/portal — Redirect to Stripe billing portal
 export async function POST(req: NextRequest) {
   try {
+    if (!isStripeConfigured) {
+      return NextResponse.json({ error: 'Payments are not configured' }, { status: 503 })
+    }
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

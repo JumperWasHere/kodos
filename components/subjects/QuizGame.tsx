@@ -18,7 +18,7 @@ interface QuizGameProps {
   questions: QuizQuestion[]
   xpReward: number
   coinReward: number
-  onComplete?: (score: number, xpEarned: number, coinsEarned: number) => void
+  onComplete?: (score: number, xpEarned: number, coinsEarned: number, answers: Record<string, string | string[]>) => Promise<{ xpEarned: number; coinsEarned: number } | void> | void
   onBack?: () => void
 }
 
@@ -41,6 +41,8 @@ export default function QuizGame({
   const [streak, setStreak] = useState(0)
   const [timeLeft, setTimeLeft] = useState(0)
   const [answers, setAnswers] = useState<Array<{ question: string; selected: string; correct: string; isCorrect: boolean }>>([])
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, string | string[]>>({})
+  const [awardedRewards, setAwardedRewards] = useState<{ xp: number; coins: number } | null>(null)
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([])
   const { addXP, addCoins } = useGamificationStore()
   const { width, height } = useWindowSize()
@@ -87,6 +89,7 @@ export default function QuizGame({
         isCorrect: false,
       },
     ])
+    setSubmittedAnswers((prev) => ({ ...prev, [currentQ.id]: '__timeout__' }))
     toast.error("⏰ Time's up!")
   }, [isAnswered, currentQ])
 
@@ -103,6 +106,7 @@ export default function QuizGame({
       ...prev,
       { question: currentQ.question, selected: answer, correct: Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer, isCorrect: correct },
     ])
+    setSubmittedAnswers((prev) => ({ ...prev, [currentQ.id]: answer }))
 
     if (correct) {
       const newStreak = streak + 1
@@ -125,20 +129,28 @@ export default function QuizGame({
     }
   }
 
-  const finishQuiz = () => {
+  const finishQuiz = async () => {
     const pct = Math.round((score / totalPoints) * 100)
-    const earnedXP = Math.round(xpReward * (pct / 100))
-    const earnedCoins = Math.round(coinReward * (pct / 100))
+    const calculatedXP = Math.round(xpReward * (pct / 100))
+    const calculatedCoins = Math.round(coinReward * (pct / 100))
 
-    addXP(earnedXP, 'quiz')
-    addCoins(earnedCoins)
+    try {
+      const result = await onComplete?.(pct, calculatedXP, calculatedCoins, submittedAnswers)
+      const earnedXP = result?.xpEarned ?? calculatedXP
+      const earnedCoins = result?.coinsEarned ?? calculatedCoins
+      setAwardedRewards({ xp: earnedXP, coins: earnedCoins })
+      addXP(earnedXP, 'quiz')
+      addCoins(earnedCoins)
+    } catch {
+      toast.error('Your result could not be saved. Please try again.')
+      return
+    }
 
     if (pct >= 80) {
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 5000)
     }
 
-    onComplete?.(pct, earnedXP, earnedCoins)
     setState('result')
   }
 
@@ -186,8 +198,8 @@ export default function QuizGame({
   // ── Result Screen ──────────────────────────────────────────
   if (state === 'result') {
     const pct = Math.round((score / totalPoints) * 100)
-    const earnedXP = Math.round(xpReward * (pct / 100))
-    const earnedCoins = Math.round(coinReward * (pct / 100))
+    const earnedXP = awardedRewards?.xp ?? Math.round(xpReward * (pct / 100))
+    const earnedCoins = awardedRewards?.coins ?? Math.round(coinReward * (pct / 100))
 
     const stars = pct >= 90 ? 3 : pct >= 70 ? 2 : 1
     const messages = {
@@ -244,7 +256,7 @@ export default function QuizGame({
         <div className="space-y-3">
           <Button onClick={() => {
             setCurrentIdx(0); setSelectedAnswer(null); setIsAnswered(false)
-            setScore(0); setStreak(0); setAnswers([]); setState('playing')
+            setScore(0); setStreak(0); setAnswers([]); setSubmittedAnswers({}); setAwardedRewards(null); setState('playing')
           }} variant="outline" className="w-full gap-2">
             <RefreshCw className="w-4 h-4" />
             Try Again

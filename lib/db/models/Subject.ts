@@ -100,7 +100,6 @@ const SubjectSchema = new Schema<ISubjectDocument>(
   }
 )
 
-SubjectSchema.index({ slug: 1 })
 SubjectSchema.index({ isActive: 1, order: 1 })
 
 export const Subject = models.Subject || model<ISubjectDocument>('Subject', SubjectSchema)

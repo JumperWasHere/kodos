@@ -90,7 +90,7 @@ function HeroSection() {
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <Link href="/pricing">
+              <Link href="/#pricing">
                 <Button size="xl" className="bg-white/20 backdrop-blur-sm border-2 border-white/40 text-white hover:bg-white/30 shadow-none translate-y-0">
                   View Plans
                 </Button>
@@ -559,7 +559,7 @@ function CTASection() {
                   Create Free Account
                 </Button>
               </Link>
-              <Link href="/pricing">
+              <Link href="/#pricing">
                 <Button size="xl" className="bg-white/20 border-2 border-white/40 shadow-none translate-y-0 hover:bg-white/30">
                   See All Plans
                   <ChevronRight className="w-5 h-5" />

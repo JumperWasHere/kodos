@@ -49,16 +49,11 @@ export async function POST(req: NextRequest) {
     const student = await Student.findOne({ userId: session.user.id })
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
-    const today = new Date().toDateString()
-    const lastReward = student.lastDailyRewardDate?.toDateString()
-
-    if (lastReward === today) {
-      return NextResponse.json({ success: false, error: 'Daily reward already claimed today' }, { status: 400 })
-    }
-
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const isConsecutive = lastReward === yesterday.toDateString()
+    const now = new Date()
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    const startOfYesterday = new Date(startOfToday)
+    startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1)
+    const isConsecutive = student.lastDailyRewardDate?.getTime() === startOfYesterday.getTime()
 
     const newStreak = isConsecutive ? (student.dailyRewardStreak + 1) : 1
     const day = newStreak
@@ -70,8 +65,14 @@ export async function POST(req: NextRequest) {
     // Special reward on day 7
     const specialReward = day === 7 ? { type: 'gem', amount: 5 } : null
 
-    await Student.updateOne(
-      { _id: student._id },
+    const result = await Student.updateOne(
+      {
+        _id: student._id,
+        $or: [
+          { lastDailyRewardDate: { $lt: startOfToday } },
+          { lastDailyRewardDate: { $exists: false } },
+        ],
+      },
       {
         $inc: {
           xp: xpReward,
@@ -80,11 +81,15 @@ export async function POST(req: NextRequest) {
           totalLoginDays: 1,
         },
         $set: {
-          lastDailyRewardDate: new Date(),
+          lastDailyRewardDate: startOfToday,
           dailyRewardStreak: newStreak,
         },
       }
     )
+
+    if (result.modifiedCount !== 1) {
+      return NextResponse.json({ success: false, error: 'Daily reward already claimed today' }, { status: 400 })
+    }
 
     return NextResponse.json({
       success: true,

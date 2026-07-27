@@ -1,10 +1,10 @@
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing STRIPE_SECRET_KEY')
-}
+// Keep configuration validation at the API boundary. Throwing during module
+// initialization prevents builds and unrelated routes from starting.
+export const isStripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY)
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_missing_configuration', {
   apiVersion: '2025-02-24.acacia',
   typescript: true,
 })
