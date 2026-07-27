@@ -40,9 +40,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Azure App Service sets PORT; Next.js standalone server respects it.
-ENV PORT=8080
-EXPOSE 8080
+# Railway injects PORT at runtime; default to 3000 for Next.js standalone.
+ENV PORT=3000
+EXPOSE 3000
 
 # Non-root user for security
 RUN addgroup --system --gid 1001 nodejs \
