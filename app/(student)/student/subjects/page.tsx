@@ -5,12 +5,13 @@ import Student from '@/lib/db/models/Student'
 import SubjectsClient from './SubjectsClient'
 
 export default async function SubjectsPage() {
-  const session = await auth()
+  const [session] = await Promise.all([auth(), connectDB()])
   if (!session?.user?.id) return null
 
-  await connectDB()
-  const subjects = (await Subject.find({ isActive: true }).sort({ order: 1 }).lean()) as any[]
-  const student = (await Student.findOne({ userId: session.user.id }).lean()) as any
+  const [subjects, student] = await Promise.all([
+    Subject.find({ isActive: true }).sort({ order: 1 }).lean() as Promise<any[]>,
+    Student.findOne({ userId: session.user.id }).lean() as Promise<any>,
+  ])
 
   return (
     <SubjectsClient

@@ -53,6 +53,7 @@ function answersMatch(expected: string | string[], submitted: string | string[] 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
+    console.log('Session:', session)
     if (!session?.user?.studentId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

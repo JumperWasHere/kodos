@@ -6,10 +6,8 @@ import '@/lib/db/models/Badge' // ensure Badge schema is registered for populate
 import StudentDashboardClient from './StudentDashboardClient'
 
 export default async function StudentDashboardPage() {
-  const session = await auth()
+  const [session] = await Promise.all([auth(), connectDB()])
   if (!session?.user?.id) return null
-
-  await connectDB()
 
   const [student, subjects] = await Promise.all([
     Student.findOne({ userId: session.user.id })

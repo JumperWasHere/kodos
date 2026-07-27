@@ -12,10 +12,8 @@ interface Props {
 
 export default async function SubjectDetailPage({ params }: Props) {
   const { subject: slug } = await params
-  const session = await auth()
+  const [session] = await Promise.all([auth(), connectDB()])
   if (!session?.user?.id) return null
-
-  await connectDB()
 
   const [subjectDoc, lessonsDoc, student] = await Promise.all([
     Subject.findOne({ slug, isActive: true }).lean() as any,

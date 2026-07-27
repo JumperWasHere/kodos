@@ -13,15 +13,12 @@ interface Props {
 
 export default async function LessonPlayerPage({ params }: Props) {
   const { subject: slug, lesson: lessonId } = await params
-  const session = await auth()
+  const [session] = await Promise.all([auth(), connectDB()])
   if (!session?.user?.id) return null
 
   // Handle mock lesson IDs (when seeded data isn't present)
   if (lessonId.startsWith('mock-')) {
-    const subject = await (async () => {
-      await connectDB()
-      return Subject.findOne({ slug, isActive: true }).lean() as any
-    })()
+    const subject = await Subject.findOne({ slug, isActive: true }).lean() as any
     if (!subject) notFound()
     return (
       <LessonPlayerClient
@@ -32,8 +29,6 @@ export default async function LessonPlayerPage({ params }: Props) {
       />
     )
   }
-
-  await connectDB()
 
   const [lesson, subject, student] = await Promise.all([
     Lesson.findById(lessonId).lean() as any,

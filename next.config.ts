@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
     ],
   },
-  experimental: {
-    serverActions: { allowedOrigins: ['localhost:3000'] },
-  },
   headers: async () => [
     {
       source: '/(.*)',
