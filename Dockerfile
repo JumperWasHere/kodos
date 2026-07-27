@@ -40,9 +40,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Railway injects PORT at runtime; default to 3000 for Next.js standalone.
-ENV PORT=3000
-EXPOSE 3000
+# Railway injects PORT at runtime (typically 8080). Do NOT hardcode it here
+# so the runtime value always wins. Next.js standalone server.js respects PORT.
+EXPOSE 8080
 
 # Non-root user for security
 RUN addgroup --system --gid 1001 nodejs \
