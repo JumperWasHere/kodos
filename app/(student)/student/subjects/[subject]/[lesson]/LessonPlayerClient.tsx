@@ -1,12 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { ArrowLeft, BookOpen, Clock, Zap } from 'lucide-react'
+import { ArrowLeft, Clock, Zap } from 'lucide-react'
 import QuizGame from '@/components/subjects/QuizGame'
+import StoryPlayer from '@/components/subjects/StoryPlayer'
+import type { AgeGroup, LearningPoint, LessonLanguage, QuizQuestion, StoryPage } from '@/types'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import type { AgeGroup, LessonLanguage, QuizQuestion } from '@/types'
 
 interface Props {
   lesson: {
@@ -22,9 +23,14 @@ interface Props {
     duration: number
     difficulty: string
     questions?: QuizQuestion[]
+    learningPoints?: LearningPoint[]
+    activityPrompts?: string[]
+    songTitle?: string
+    songLyrics?: string
+    songAudioUrl?: string
     videoUrl?: string
     worksheetUrl?: string
-    storyPages?: Array<{ pageNumber: number; text: string; imageUrl: string }>
+    storyPages?: StoryPage[]
     isPremium: boolean
   }
   subject: {
@@ -98,6 +104,31 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     )
   }
 
+  // Render the full story player (pages, learning points, activity, song) for
+  // story-type lessons that actually have pages authored.
+  if (lesson.type === 'story' && lesson.storyPages?.length) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
+        <StoryPlayer
+          title={lesson.title}
+          pages={lesson.storyPages}
+          learningPoints={lesson.learningPoints}
+          activityPrompts={lesson.activityPrompts}
+          songTitle={lesson.songTitle}
+          songLyrics={lesson.songLyrics}
+          songAudioUrl={lesson.songAudioUrl}
+          xpReward={lesson.xpReward}
+          coinReward={lesson.coinReward}
+          ageGroup={lesson.ageGroup}
+          language={lesson.language}
+          onComplete={handleComplete}
+          onBack={handleBack}
+        />
+      </div>
+    )
+  }
+
+  // Video / worksheet / interactive-without-questions / empty story — simple fallback UI
   const page = lesson.storyPages?.[storyPage]
 
   return (

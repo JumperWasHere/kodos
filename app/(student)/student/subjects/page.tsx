@@ -18,6 +18,7 @@ export default async function SubjectsPage() {
       subjects={JSON.parse(JSON.stringify(subjects))}
       studentProgress={JSON.parse(JSON.stringify(student?.subjectProgress ?? []))}
       isPremium={student?.isPremium ?? false}
+      studentAgeGroup={student?.ageGroup}
     />
   )
 }

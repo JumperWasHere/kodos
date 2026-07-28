@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Lock, ChevronRight, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { cn, getSubjectGradient, getSubjectIcon, getSubjectColor, percentOf } from '@/lib/utils'
-import type { SubjectSlug } from '@/types'
+import { cn, getSubjectGradient, getSubjectIcon, percentOf } from '@/lib/utils'
+import type { AgeGroup, SubjectSlug } from '@/types'
 
 interface Props {
   subjects: Array<{
@@ -16,6 +16,7 @@ interface Props {
     icon: string
     gradient: string
     description: string
+    ageGroups?: AgeGroup[]
     totalLessons: number
     totalQuizzes: number
     totalGames: number
@@ -35,14 +36,26 @@ interface Props {
     masteryLevel: number
   }>
   isPremium: boolean
+  studentAgeGroup?: AgeGroup
 }
 
-export default function SubjectsClient({ subjects, studentProgress, isPremium }: Props) {
-  const [search, setSearch] = useState('')
+const AGE_TABS: Array<{ value: AgeGroup | 'all'; label: string; emoji: string }> = [
+  { value: 'all', label: 'All Ages', emoji: '🌈' },
+  { value: 'toddler', label: 'Little Ones (1–3)', emoji: '👶' },
+  { value: 'preschool', label: 'Preschool (3–6)', emoji: '🧸' },
+  { value: 'lower_primary', label: 'Lower Primary (7–9)', emoji: '✏️' },
+  { value: 'upper_primary', label: 'Upper Primary (10–12)', emoji: '🎓' },
+]
 
-  const filtered = subjects.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  )
+export default function SubjectsClient({ subjects, studentProgress, isPremium, studentAgeGroup }: Props) {
+  const [search, setSearch] = useState('')
+  const [selectedAge, setSelectedAge] = useState<AgeGroup | 'all'>('all')
+
+  const filtered = subjects.filter((s) => {
+    if (!s.name.toLowerCase().includes(search.toLowerCase())) return false
+    if (selectedAge !== 'all' && !s.ageGroups?.includes(selectedAge)) return false
+    return true
+  })
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -52,7 +65,7 @@ export default function SubjectsClient({ subjects, studentProgress, isPremium }:
       </div>
 
       {/* Search */}
-      <div className="relative mb-6 max-w-sm">
+      <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search subjects..."
@@ -61,6 +74,37 @@ export default function SubjectsClient({ subjects, studentProgress, isPremium }:
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+
+      {/* Age group filter */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        {AGE_TABS.map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setSelectedAge(tab.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-sm font-semibold transition-colors flex items-center gap-1',
+              selectedAge === tab.value
+                ? 'bg-purple-600 text-white'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+            )}
+          >
+            {tab.emoji} {tab.label}
+            {tab.value === studentAgeGroup && selectedAge !== tab.value && (
+              <span className="text-[10px] bg-purple-200 text-purple-800 rounded-full px-1.5">For you</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="text-center py-16">
+          <div className="text-5xl mb-3">🔍</div>
+          <p className="font-display text-xl font-bold">No subjects found</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Try a different age group or search. (If “Little Ones” is empty, re-run <code>npm run seed</code> to load the new toddler content.)
+          </p>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((subject, i) => {
