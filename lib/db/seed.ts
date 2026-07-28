@@ -17,6 +17,7 @@ import { getGeographyLessons } from './seeds/geography'
 import { getHistoryLessons } from './seeds/history'
 import { getArtLessons } from './seeds/art'
 import { getIctLessons } from './seeds/ict'
+import { getToddlerLessons } from './seeds/toddler'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kidosdb'
 
@@ -159,7 +160,7 @@ const SUBJECTS_DATA = [
     color: '#3B82F6',
     gradient: 'from-blue-500 to-blue-600',
     bgClass: 'bg-subject-math',
-    ageGroups: ['preschool', 'lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
     grades: [0, 1, 2, 3, 4, 5, 6],
     totalLessons: 120,
     totalQuizzes: 60,
@@ -186,7 +187,7 @@ const SUBJECTS_DATA = [
     color: '#8B5CF6',
     gradient: 'from-purple-500 to-purple-600',
     bgClass: 'bg-subject-english',
-    ageGroups: ['preschool', 'lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
     grades: [0, 1, 2, 3, 4, 5, 6],
     totalLessons: 100,
     totalQuizzes: 50,
@@ -212,7 +213,7 @@ const SUBJECTS_DATA = [
     color: '#10B981',
     gradient: 'from-emerald-500 to-emerald-600',
     bgClass: 'bg-subject-science',
-    ageGroups: ['lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'lower_primary', 'upper_primary'],
     grades: [1, 2, 3, 4, 5, 6],
     totalLessons: 80,
     totalQuizzes: 40,
@@ -238,7 +239,7 @@ const SUBJECTS_DATA = [
     color: '#F59E0B',
     gradient: 'from-amber-500 to-amber-600',
     bgClass: 'bg-subject-bm',
-    ageGroups: ['preschool', 'lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
     grades: [0, 1, 2, 3, 4, 5, 6],
     totalLessons: 90,
     totalQuizzes: 45,
@@ -264,7 +265,7 @@ const SUBJECTS_DATA = [
     color: '#EF4444',
     gradient: 'from-red-500 to-red-600',
     bgClass: 'bg-subject-mandarin',
-    ageGroups: ['preschool', 'lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
     grades: [0, 1, 2, 3, 4, 5, 6],
     totalLessons: 80,
     totalQuizzes: 40,
@@ -336,7 +337,7 @@ const SUBJECTS_DATA = [
     color: '#EC4899',
     gradient: 'from-pink-500 to-pink-600',
     bgClass: 'bg-subject-art',
-    ageGroups: ['preschool', 'lower_primary', 'upper_primary'],
+    ageGroups: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
     grades: [0, 1, 2, 3, 4, 5, 6],
     totalLessons: 40,
     totalQuizzes: 10,
@@ -575,13 +576,28 @@ async function seed() {
     { name: 'ICT',             fn: getIctLessons,            slug: 'ict' },
   ]
 
+  // Bahasa Malaysia lessons are written in Malay — read them with the Malay voice
+  const DEFAULT_LESSON_LANGUAGE: Record<string, string> = {
+    'bahasa-malaysia': 'ms',
+  }
+
   let totalLessons = 0
   for (const { name, fn, slug } of allLessonGroups) {
-    const lessons = fn(subjectMap[slug])
+    const lessons = fn(subjectMap[slug]).map((lesson: Record<string, unknown>) => ({
+      language: DEFAULT_LESSON_LANGUAGE[slug] ?? 'en',
+      ...lesson,
+    }))
     await Lesson.insertMany(lessons)
     console.log(`  ✅ ${name}: ${lessons.length} lessons`)
     totalLessons += lessons.length
   }
+
+  // Toddler lessons span multiple subjects, so they get the whole subject map
+  const toddlerLessons = getToddlerLessons(subjectMap)
+  await Lesson.insertMany(toddlerLessons)
+  console.log(`  ✅ Little Ones (1–3): ${toddlerLessons.length} lessons`)
+  totalLessons += toddlerLessons.length
+
   console.log(`\n📚 Total lessons created: ${totalLessons}`)
 
   // ── Summary ──────────────────────────────────────────────────────────────

@@ -355,5 +355,47 @@ export function getEnglishLessons(subjectId: any) {
         },
       ],
     },
+
+    // ── SPELLING BEE (Fill-in-the-blank) ───────────────────────────────────
+    {
+      title: 'Spelling Bee: Type It Out! 🐝',
+      description: 'No options this time — look at the picture clue and TYPE the word!',
+      subjectId, subjectSlug: 'english', topicId: 'vocabulary',
+      ageGroup: 'lower_primary', grade: [2, 3], type: 'game', difficulty: 'medium',
+      duration: 10, xpReward: 55, coinReward: 22, isPremium: false, isActive: true, order: 20,
+      tags: ['spelling', 'vocabulary', 'fill-blank', 'typing'],
+      questions: [
+        {
+          id: 'q1', type: 'fill_blank', points: 10, timeLimit: 25,
+          question: '🐘 This BIG grey animal has a long trunk.\nType its name:',
+          correctAnswer: ['elephant', 'an elephant'],
+          explanation: 'E-L-E-P-H-A-N-T — elephant! The "f" sound is spelled PH. 🐘',
+        },
+        {
+          id: 'q2', type: 'fill_blank', points: 10, timeLimit: 25,
+          question: '🌈 After the rain, you might see this colourful arc in the sky.\nType its name:',
+          correctAnswer: ['rainbow', 'a rainbow'],
+          explanation: 'R-A-I-N-B-O-W — rainbow! Rain + bow = rainbow. 🌈',
+        },
+        {
+          id: 'q3', type: 'fill_blank', points: 10, timeLimit: 25,
+          question: '🏫 The place where you go to learn every day.\nType its name:',
+          correctAnswer: ['school', 'a school'],
+          explanation: 'S-C-H-O-O-L — school! Remember the silent-looking CH. 🏫',
+        },
+        {
+          id: 'q4', type: 'fill_blank', points: 15, timeLimit: 30,
+          question: 'Finish the sentence:\n"The opposite of HOT is ___"',
+          correctAnswer: ['cold'],
+          explanation: 'Hot and COLD are opposites (antonyms)! 🥶🔥',
+        },
+        {
+          id: 'q5', type: 'fill_blank', points: 15, timeLimit: 30,
+          question: '🍌🍌 One banana, two ___\nType the plural word:',
+          correctAnswer: ['bananas'],
+          explanation: 'Just add -S: one banana, two bananaS! 🍌',
+        },
+      ],
+    },
   ]
 }

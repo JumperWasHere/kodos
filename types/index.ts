@@ -9,7 +9,10 @@ export type UserRole = 'student' | 'parent' | 'teacher' | 'admin'
 export type SubscriptionPlan = 'free' | 'monthly' | 'annual' | 'family'
 export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'trialing' | 'past_due'
 
-export type AgeGroup = 'preschool' | 'lower_primary' | 'upper_primary'
+export type AgeGroup = 'toddler' | 'preschool' | 'lower_primary' | 'upper_primary'
+
+// Language a lesson's questions are written in — drives the text-to-speech voice
+export type LessonLanguage = 'en' | 'ms' | 'zh' | 'ar'
 
 export type SubjectSlug =
   | 'mathematics'

@@ -441,5 +441,89 @@ export function getMathLessons(subjectId: any) {
         },
       ],
     },
+
+    // ── SHAPE DETECTIVE (True/False + Fill-in) ─────────────────────────────
+    {
+      title: 'Shape Detective: True or False? 🔷',
+      description: 'Look at the shapes and decide — true or false? Then type the answers!',
+      subjectId, subjectSlug: 'mathematics', topicId: 'counting',
+      ageGroup: 'preschool', grade: [0, 1], type: 'game', difficulty: 'easy',
+      duration: 8, xpReward: 40, coinReward: 15, isPremium: false, isActive: true, order: 20,
+      tags: ['shapes', 'true-false', 'visual', 'preschool'],
+      questions: [
+        {
+          id: 'q1', type: 'true_false', points: 10, timeLimit: 15,
+          question: '🔺 A triangle has 3 sides.',
+          correctAnswer: 'True',
+          explanation: 'Yes! Count them: 1, 2, 3 — a triangle always has 3 sides! 🔺',
+        },
+        {
+          id: 'q2', type: 'true_false', points: 10, timeLimit: 15,
+          question: '⬛ A square has 5 corners.',
+          correctAnswer: 'False',
+          explanation: 'A square has 4 corners, not 5! Count them at each edge. ⬛',
+        },
+        {
+          id: 'q3', type: 'true_false', points: 10, timeLimit: 15,
+          question: '⚽ A ball is shaped like a circle (sphere).',
+          correctAnswer: 'True',
+          explanation: 'A ball is round like a circle — in 3D we call it a sphere! ⚽',
+        },
+        {
+          id: 'q4', type: 'fill_blank', points: 15, timeLimit: 25,
+          question: '🔺🔺🔺🔺\nCount the triangles and TYPE the number.',
+          correctAnswer: ['4', 'four'],
+          explanation: 'There are 4 triangles: 1️⃣ 2️⃣ 3️⃣ 4️⃣!',
+        },
+        {
+          id: 'q5', type: 'fill_blank', points: 15, timeLimit: 25,
+          question: 'A shape with 4 equal sides is called a ___',
+          correctAnswer: ['square'],
+          explanation: 'A SQUARE has 4 sides that are all the same length! ⬛',
+        },
+      ],
+    },
+
+    // ── TIMES TABLE SPRINT (Fill-in, upper primary) ────────────────────────
+    {
+      title: 'Times Table Sprint ⚡✖️',
+      description: 'Type the answers as fast as you can — no options to help you here!',
+      subjectId, subjectSlug: 'mathematics', topicId: 'multiplication',
+      ageGroup: 'upper_primary', grade: [4, 5, 6], type: 'game', difficulty: 'medium',
+      duration: 8, xpReward: 60, coinReward: 25, isPremium: false, isActive: true, order: 21,
+      tags: ['multiplication', 'times-tables', 'fill-blank', 'speed'],
+      questions: [
+        {
+          id: 'q1', type: 'fill_blank', points: 10, timeLimit: 15,
+          question: '7 × 8 = ___',
+          correctAnswer: ['56'],
+          explanation: '7 × 8 = 56. Remember: 5, 6, 7, 8 → 56 = 7 × 8!',
+        },
+        {
+          id: 'q2', type: 'fill_blank', points: 10, timeLimit: 15,
+          question: '9 × 6 = ___',
+          correctAnswer: ['54'],
+          explanation: '9 × 6 = 54. Trick: 10 × 6 = 60, minus one 6 = 54!',
+        },
+        {
+          id: 'q3', type: 'fill_blank', points: 10, timeLimit: 15,
+          question: '12 × 4 = ___',
+          correctAnswer: ['48'],
+          explanation: '12 × 4 = 48. That is 10 × 4 = 40 plus 2 × 4 = 8!',
+        },
+        {
+          id: 'q4', type: 'fill_blank', points: 15, timeLimit: 20,
+          question: '8 × ___ = 72\nType the missing number.',
+          correctAnswer: ['9'],
+          explanation: '8 × 9 = 72! Working backwards: 72 ÷ 8 = 9.',
+        },
+        {
+          id: 'q5', type: 'fill_blank', points: 15, timeLimit: 20,
+          question: '🍬 6 friends each have 7 sweets.\nHow many sweets in total?',
+          correctAnswer: ['42'],
+          explanation: '6 × 7 = 42 sweets! Multiplication is repeated addition.',
+        },
+      ],
+    },
   ]
 }

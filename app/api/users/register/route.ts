@@ -9,7 +9,17 @@ const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/),
   role: z.enum(['student', 'parent', 'teacher']),
+  ageGroup: z.enum(['toddler', 'preschool', 'lower_primary', 'upper_primary']).optional(),
+  grade: z.number().int().min(0).max(6).optional(),
 })
+
+// Sensible default grade for each age group when none is given
+const DEFAULT_GRADE: Record<string, number> = {
+  toddler: 0,
+  preschool: 0,
+  lower_primary: 1,
+  upper_primary: 4,
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    const { name, email, password, role } = parsed.data
+    const { name, email, password, role, ageGroup, grade } = parsed.data
 
     // Check existing user
     const existing = await User.findOne({ email }).lean()
@@ -49,11 +59,12 @@ export async function POST(req: NextRequest) {
 
     // Create student profile if student role
     if (role === 'student') {
+      const studentAgeGroup = ageGroup ?? 'lower_primary'
       await Student.create({
         userId: user._id,
         displayName: name.split(' ')[0],
-        ageGroup: 'lower_primary',
-        grade: 1,
+        ageGroup: studentAgeGroup,
+        grade: grade ?? DEFAULT_GRADE[studentAgeGroup],
         xp: 0,
         level: 1,
         coins: 100, // Starting coins

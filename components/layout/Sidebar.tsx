@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, BookOpen, Trophy, Star, Settings, LogOut,
-  Flame, Zap, Menu, X, Home, Users, BarChart3, CreditCard,
-  ShieldCheck, BookMarked, Map
+  LayoutDashboard, BookOpen, Trophy, Star, LogOut,
+  Flame, Zap, Menu, X, CreditCard, BookMarked,
+  Users, BarChart3, Settings, ClipboardList
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -21,37 +21,32 @@ interface NavItem {
   badge?: string
 }
 
+// Only link to pages that exist — placeholder sections (classes, reports,
+// admin tools) come back here once their pages are built.
 const STUDENT_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Subjects', href: '/student/subjects', icon: <BookOpen className="w-5 h-5" /> },
   { label: 'Achievements', href: '/student/achievements', icon: <Trophy className="w-5 h-5" /> },
   { label: 'Leaderboard', href: '/student/leaderboard', icon: <Star className="w-5 h-5" /> },
-  { label: 'Profile', href: '/student/profile', icon: <Settings className="w-5 h-5" /> },
 ]
 
 const PARENT_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/parent/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'My Children', href: '/parent/children', icon: <Users className="w-5 h-5" /> },
-  { label: 'Reports', href: '/parent/reports', icon: <BarChart3 className="w-5 h-5" /> },
   { label: 'Subscription', href: '/parent/subscription', icon: <CreditCard className="w-5 h-5" /> },
-  { label: 'Settings', href: '/parent/settings', icon: <Settings className="w-5 h-5" /> },
 ]
 
 const TEACHER_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/teacher/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'My Classes', href: '/teacher/classes', icon: <BookMarked className="w-5 h-5" /> },
+  { label: 'My Quizzes', href: '/teacher/quizzes', icon: <BookMarked className="w-5 h-5" /> },
+  { label: 'My Classes', href: '/teacher/classes', icon: <Users className="w-5 h-5" /> },
+  { label: 'Assignments', href: '/teacher/assignments', icon: <ClipboardList className="w-5 h-5" /> },
   { label: 'Analytics', href: '/teacher/analytics', icon: <BarChart3 className="w-5 h-5" /> },
-  { label: 'Assignments', href: '/teacher/assignments', icon: <BookOpen className="w-5 h-5" /> },
   { label: 'Settings', href: '/teacher/settings', icon: <Settings className="w-5 h-5" /> },
 ]
 
 const ADMIN_NAV: NavItem[] = [
   { label: 'Overview', href: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
-  { label: 'Content', href: '/admin/content', icon: <BookOpen className="w-5 h-5" /> },
-  { label: 'Subscriptions', href: '/admin/subscriptions', icon: <CreditCard className="w-5 h-5" /> },
-  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="w-5 h-5" /> },
-  { label: 'Settings', href: '/admin/settings', icon: <ShieldCheck className="w-5 h-5" /> },
+  { label: 'Quizzes', href: '/teacher/quizzes', icon: <BookMarked className="w-5 h-5" /> },
 ]
 
 const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {

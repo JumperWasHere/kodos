@@ -329,5 +329,53 @@ export function getScienceLessons(subjectId: any) {
         },
       ],
     },
+
+    // ── AMAZING ANIMAL FACTS (True/False) ──────────────────────────────────
+    {
+      title: 'Amazing Animal Facts: True or False? 🐾',
+      description: 'Some of these animal facts are real — and some are made up. Can you tell?',
+      subjectId, subjectSlug: 'science', topicId: 'animals',
+      ageGroup: 'upper_primary', grade: [4, 5, 6], type: 'quiz', difficulty: 'medium',
+      duration: 8, xpReward: 55, coinReward: 22, isPremium: false, isActive: true, order: 20,
+      tags: ['animals', 'true-false', 'facts', 'fun'],
+      questions: [
+        {
+          id: 'q1', type: 'true_false', points: 10, timeLimit: 15,
+          question: '🐙 An octopus has three hearts.',
+          correctAnswer: 'True',
+          explanation: 'True! Two hearts pump blood to the gills and one to the rest of the body. 🐙',
+        },
+        {
+          id: 'q2', type: 'true_false', points: 10, timeLimit: 15,
+          question: '🦇 Bats are completely blind.',
+          correctAnswer: 'False',
+          explanation: 'False! Bats can see — they also use echolocation (sound waves) to "see" in the dark! 🦇',
+        },
+        {
+          id: 'q3', type: 'true_false', points: 10, timeLimit: 15,
+          question: '🐘 The elephant is the largest land animal in the world.',
+          correctAnswer: 'True',
+          explanation: 'True! The African elephant can weigh up to 6,000 kg — as heavy as 4 cars! 🐘',
+        },
+        {
+          id: 'q4', type: 'true_false', points: 10, timeLimit: 15,
+          question: '🐟 Fish breathe air with lungs, just like humans.',
+          correctAnswer: 'False',
+          explanation: 'False! Fish use GILLS to take oxygen from the water. 🐟',
+        },
+        {
+          id: 'q5', type: 'true_false', points: 15, timeLimit: 15,
+          question: '🦒 A giraffe has the same number of neck bones as a human (7).',
+          correctAnswer: 'True',
+          explanation: 'Amazing but true! Both giraffes and humans have 7 neck bones — a giraffe\'s are just much longer! 🦒',
+        },
+        {
+          id: 'q6', type: 'fill_blank', points: 15, timeLimit: 25,
+          question: '🐝 The insect that makes honey is called a ___',
+          correctAnswer: ['bee', 'honey bee', 'honeybee'],
+          explanation: 'Bees collect nectar from flowers and turn it into honey! 🍯',
+        },
+      ],
+    },
   ]
 }

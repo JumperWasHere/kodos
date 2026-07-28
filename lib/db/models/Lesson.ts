@@ -1,5 +1,5 @@
 import { Schema, model, models, Document } from 'mongoose'
-import type { LessonType, DifficultyLevel, AgeGroup, SubjectSlug } from '@/types'
+import type { LessonType, DifficultyLevel, AgeGroup, SubjectSlug, LessonLanguage } from '@/types'
 
 export interface IQuizQuestion {
   id: string
@@ -34,6 +34,7 @@ export interface ILessonDocument extends Document {
   grade: number[]
   type: LessonType
   difficulty: DifficultyLevel
+  language: LessonLanguage
   thumbnail: string
   duration: number
   xpReward: number
@@ -50,6 +51,7 @@ export interface ILessonDocument extends Document {
   order: number
   prerequisites: Schema.Types.ObjectId[]
   tags: string[]
+  createdBy?: Schema.Types.ObjectId
   // Stats
   totalCompletions: number
   averageScore: number
@@ -100,7 +102,7 @@ const LessonSchema = new Schema<ILessonDocument>(
     topicId: { type: String },
     ageGroup: {
       type: String,
-      enum: ['preschool', 'lower_primary', 'upper_primary'],
+      enum: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
       required: true,
     },
     grade: [{ type: Number }],
@@ -113,6 +115,11 @@ const LessonSchema = new Schema<ILessonDocument>(
       type: String,
       enum: ['easy', 'medium', 'hard'],
       default: 'easy',
+    },
+    language: {
+      type: String,
+      enum: ['en', 'ms', 'zh', 'ar'],
+      default: 'en',
     },
     thumbnail: { type: String, default: '' },
     duration: { type: Number, default: 10 },
@@ -130,6 +137,7 @@ const LessonSchema = new Schema<ILessonDocument>(
     order: { type: Number, default: 0 },
     prerequisites: [{ type: Schema.Types.ObjectId, ref: 'Lesson' }],
     tags: [{ type: String }],
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     // Stats
     totalCompletions: { type: Number, default: 0 },
     averageScore: { type: Number, default: 0 },

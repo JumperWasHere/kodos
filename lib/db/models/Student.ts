@@ -81,7 +81,7 @@ const StudentSchema = new Schema<IStudentDocument>(
     displayName: { type: String, required: true, trim: true, maxlength: 50 },
     ageGroup: {
       type: String,
-      enum: ['preschool', 'lower_primary', 'upper_primary'],
+      enum: ['toddler', 'preschool', 'lower_primary', 'upper_primary'],
       required: true,
     },
     grade: { type: Number, min: 0, max: 6, required: true },

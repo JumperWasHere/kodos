@@ -95,6 +95,7 @@ export function getSubjectIcon(slug: SubjectSlug): string {
 
 export function getAgeGroupLabel(ageGroup: AgeGroup): string {
   const labels: Record<AgeGroup, string> = {
+    toddler: 'Little Ones (1–3)',
     preschool: 'Preschool (3–6)',
     lower_primary: 'Lower Primary (7–9)',
     upper_primary: 'Upper Primary (10–12)',
@@ -107,12 +108,36 @@ export function getGradeLabel(grade: number): string {
   return `Year ${grade}`
 }
 
+// XP required to go from `level` to `level + 1` (exponential growth).
+// Single source of truth shared by the client store and API routes.
+export function xpForLevel(level: number): number {
+  return Math.floor(100 * Math.pow(1.5, level - 1))
+}
+
+export function totalXPForLevel(level: number): number {
+  let total = 0
+  for (let i = 1; i < level; i++) {
+    total += xpForLevel(i)
+  }
+  return total
+}
+
+export function getLevelFromXP(xp: number): number {
+  let level = 1
+  let totalXP = 0
+  while (totalXP + xpForLevel(level) <= xp) {
+    totalXP += xpForLevel(level)
+    level++
+  }
+  return level
+}
+
 export function calculateLevel(xp: number): number {
-  return Math.floor(Math.sqrt(xp / 100)) + 1
+  return getLevelFromXP(xp)
 }
 
 export function xpForNextLevel(level: number): number {
-  return Math.floor(100 * Math.pow(1.5, level - 1))
+  return xpForLevel(level)
 }
 
 export function getRarityColor(rarity: string): string {

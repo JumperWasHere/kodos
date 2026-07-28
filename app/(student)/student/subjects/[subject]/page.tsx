@@ -33,7 +33,7 @@ export default async function SubjectDetailPage({ params }: Props) {
       subject={JSON.parse(JSON.stringify(subjectDoc))}
       lessons={JSON.parse(JSON.stringify(lessonsDoc))}
       isPremium={isPremium}
-      studentId={session.user.studentId ?? ''}
+      studentAgeGroup={student?.ageGroup}
     />
   )
 }

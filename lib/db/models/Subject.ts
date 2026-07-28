@@ -81,7 +81,7 @@ const SubjectSchema = new Schema<ISubjectDocument>(
     color: { type: String, required: true },
     gradient: { type: String, required: true },
     bgClass: { type: String, default: 'bg-blue-500' },
-    ageGroups: [{ type: String, enum: ['preschool', 'lower_primary', 'upper_primary'] }],
+    ageGroups: [{ type: String, enum: ['toddler', 'preschool', 'lower_primary', 'upper_primary'] }],
     grades: [{ type: Number, min: 0, max: 6 }],
     totalLessons: { type: Number, default: 0 },
     totalQuizzes: { type: Number, default: 0 },

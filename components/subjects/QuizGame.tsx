@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, XCircle, ArrowRight, Timer, Trophy, Star, Zap, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, ArrowRight, Timer, Trophy, Star, Zap, RefreshCw, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn, MOTIVATION_MESSAGES, ENCOURAGEMENT_MESSAGES, randomFrom, shuffle } from '@/lib/utils'
+import { speak, stopSpeaking, playCorrectSound, playWrongSound, playCelebrationSound } from '@/lib/audio'
 import { useGamificationStore } from '@/store/gamificationStore'
 import { toast } from 'sonner'
-import type { QuizQuestion } from '@/types'
+import type { AgeGroup, LessonLanguage, QuizQuestion } from '@/types'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 
@@ -18,8 +19,18 @@ interface QuizGameProps {
   questions: QuizQuestion[]
   xpReward: number
   coinReward: number
+  ageGroup?: AgeGroup
+  language?: LessonLanguage
   onComplete?: (score: number, xpEarned: number, coinsEarned: number, answers: Record<string, string | string[]>) => Promise<{ xpEarned: number; coinsEarned: number } | void> | void
   onBack?: () => void
+}
+
+// Spoken feedback in the lesson's own language
+const SPOKEN_FEEDBACK: Record<LessonLanguage, { correct: string; wrong: string }> = {
+  en: { correct: 'Yay! Well done!', wrong: "Good try! Let's see the answer." },
+  ms: { correct: 'Hebat! Bagus sekali!', wrong: 'Cubaan yang baik! Mari lihat jawapannya.' },
+  zh: { correct: '太棒了！答对了！', wrong: '再试试！我们看看答案吧。' },
+  ar: { correct: 'أحسنت! رائع!', wrong: 'محاولة جيدة! لنرَ الإجابة.' },
 }
 
 type QuizState = 'intro' | 'playing' | 'reviewing' | 'result'
@@ -30,12 +41,17 @@ export default function QuizGame({
   questions,
   xpReward,
   coinReward,
+  ageGroup,
+  language = 'en',
   onComplete,
   onBack,
 }: QuizGameProps) {
+  // Little kids (1–6) can't read yet — auto-read questions and play sounds
+  const littleKidMode = ageGroup === 'toddler' || ageGroup === 'preschool'
   const [state, setState] = useState<QuizState>('intro')
   const [currentIdx, setCurrentIdx] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
+  const [typedAnswer, setTypedAnswer] = useState('')
   const [isAnswered, setIsAnswered] = useState(false)
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
@@ -50,7 +66,7 @@ export default function QuizGame({
 
   const currentQ = questions[currentIdx]
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
-  const progress = ((currentIdx) / questions.length) * 100
+  const progress = ((currentIdx + (isAnswered ? 1 : 0)) / questions.length) * 100
 
   // Shuffle options when question changes
   useEffect(() => {
@@ -58,6 +74,14 @@ export default function QuizGame({
       setShuffledOptions(shuffle(currentQ.options))
     }
   }, [currentIdx, currentQ])
+
+  // Auto-read the question aloud for little kids
+  useEffect(() => {
+    if (state === 'playing' && littleKidMode && currentQ?.question) {
+      speak(currentQ.question, language)
+    }
+    return () => stopSpeaking()
+  }, [currentIdx, state, littleKidMode, currentQ?.question, language])
 
   // Timer
   useEffect(() => {
@@ -90,6 +114,7 @@ export default function QuizGame({
       },
     ])
     setSubmittedAnswers((prev) => ({ ...prev, [currentQ.id]: '__timeout__' }))
+    playWrongSound()
     toast.error("⏰ Time's up!")
   }, [isAnswered, currentQ])
 
@@ -98,9 +123,12 @@ export default function QuizGame({
     setSelectedAnswer(answer)
     setIsAnswered(true)
 
+    // Typed answers (fill-in-the-blank) are graded case- and space-insensitively,
+    // matching the server-side grader.
+    const normalize = (v: string) => v.trim().toLocaleLowerCase()
     const correct = Array.isArray(currentQ.correctAnswer)
-      ? currentQ.correctAnswer.includes(answer)
-      : currentQ.correctAnswer === answer
+      ? currentQ.correctAnswer.map(normalize).includes(normalize(answer))
+      : normalize(currentQ.correctAnswer) === normalize(answer)
 
     setAnswers((prev) => [
       ...prev,
@@ -112,9 +140,13 @@ export default function QuizGame({
       const newStreak = streak + 1
       setStreak(newStreak)
       setScore((s) => s + currentQ.points)
+      playCorrectSound()
+      if (littleKidMode) speak(SPOKEN_FEEDBACK[language].correct, language)
       toast.success(newStreak >= 3 ? `🔥 ${newStreak}x Streak! +${currentQ.points} pts` : `✅ Correct! +${currentQ.points} pts`)
     } else {
       setStreak(0)
+      playWrongSound()
+      if (littleKidMode) speak(SPOKEN_FEEDBACK[language].wrong, language)
       toast.error(randomFrom(ENCOURAGEMENT_MESSAGES))
     }
   }
@@ -123,6 +155,7 @@ export default function QuizGame({
     if (currentIdx < questions.length - 1) {
       setCurrentIdx((i) => i + 1)
       setSelectedAnswer(null)
+      setTypedAnswer('')
       setIsAnswered(false)
     } else {
       finishQuiz()
@@ -148,6 +181,7 @@ export default function QuizGame({
 
     if (pct >= 80) {
       setShowConfetti(true)
+      playCelebrationSound()
       setTimeout(() => setShowConfetti(false), 5000)
     }
 
@@ -255,7 +289,7 @@ export default function QuizGame({
 
         <div className="space-y-3">
           <Button onClick={() => {
-            setCurrentIdx(0); setSelectedAnswer(null); setIsAnswered(false)
+            setCurrentIdx(0); setSelectedAnswer(null); setTypedAnswer(''); setIsAnswered(false)
             setScore(0); setStreak(0); setAnswers([]); setSubmittedAnswers({}); setAwardedRewards(null); setState('playing')
           }} variant="outline" className="w-full gap-2">
             <RefreshCw className="w-4 h-4" />
@@ -331,41 +365,97 @@ export default function QuizGame({
           {currentQ?.imageUrl && (
             <img src={currentQ.imageUrl} alt="Question" className="w-full max-h-48 object-contain rounded-2xl mb-4" />
           )}
-          <p className="font-display text-xl font-bold text-center leading-relaxed whitespace-pre-line">
-            {currentQ?.question}
-          </p>
+          <div className="flex items-start justify-center gap-2">
+            <p className={cn(
+              'font-display font-bold text-center leading-relaxed whitespace-pre-line',
+              littleKidMode ? 'text-3xl' : 'text-xl'
+            )}>
+              {currentQ?.question}
+            </p>
+            <button
+              type="button"
+              onClick={() => currentQ?.question && speak(currentQ.question, language)}
+              className={cn(
+                'flex-shrink-0 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors flex items-center justify-center',
+                littleKidMode ? 'w-12 h-12' : 'w-9 h-9'
+              )}
+              aria-label="Read the question aloud"
+              title="Read aloud 🔊"
+            >
+              <Volume2 className={littleKidMode ? 'w-6 h-6' : 'w-4 h-4'} />
+            </button>
+          </div>
         </motion.div>
       </AnimatePresence>
 
       {/* Answer options */}
-      <div className={cn(
-        'grid gap-3 mb-4',
-        currentQ?.type === 'true_false' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'
-      )}>
-        {currentQ?.type === 'true_false'
-          ? ['True', 'False'].map((opt, idx) => (
-            <AnswerButton
-              key={opt}
-              opt={opt}
-              index={idx}
-              selected={selectedAnswer}
-              correct={Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer}
-              isAnswered={isAnswered}
-              onClick={() => handleAnswer(opt)}
-            />
-          ))
-          : shuffledOptions.map((opt, idx) => (
-            <AnswerButton
-              key={opt}
-              opt={opt}
-              index={idx}
-              selected={selectedAnswer}
-              correct={Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer}
-              isAnswered={isAnswered}
-              onClick={() => handleAnswer(opt)}
-            />
-          ))}
-      </div>
+      {currentQ?.type === 'fill_blank' ? (
+        <form
+          className="mb-4 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (typedAnswer.trim()) handleAnswer(typedAnswer)
+          }}
+        >
+          <input
+            type="text"
+            value={typedAnswer}
+            onChange={(e) => setTypedAnswer(e.target.value)}
+            disabled={isAnswered}
+            placeholder="Type your answer here… ✍️"
+            autoFocus
+            className={cn(
+              'w-full rounded-2xl border-2 px-4 py-4 font-display text-xl text-center font-bold outline-none transition-colors',
+              !isAnswered && 'border-gray-200 focus:border-primary',
+              isAnswered && (answers[answers.length - 1]?.isCorrect
+                ? 'border-green-500 bg-green-50 text-green-700'
+                : 'border-red-500 bg-red-50 text-red-700')
+            )}
+          />
+          {!isAnswered && (
+            <Button type="submit" className="w-full" size="lg" disabled={!typedAnswer.trim()}>
+              Check Answer ✅
+            </Button>
+          )}
+          {isAnswered && !answers[answers.length - 1]?.isCorrect && (
+            <p className="text-center text-sm font-semibold text-muted-foreground">
+              Correct answer:{' '}
+              <span className="text-green-600 font-bold">
+                {Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer}
+              </span>
+            </p>
+          )}
+        </form>
+      ) : (
+        <div className={cn(
+          'grid gap-3 mb-4',
+          currentQ?.type === 'true_false' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'
+        )}>
+          {currentQ?.type === 'true_false'
+            ? ['True', 'False'].map((opt, idx) => (
+              <AnswerButton
+                key={opt}
+                opt={opt}
+                index={idx}
+                selected={selectedAnswer}
+                correct={Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer}
+                isAnswered={isAnswered}
+                onClick={() => handleAnswer(opt)}
+              />
+            ))
+            : shuffledOptions.map((opt, idx) => (
+              <AnswerButton
+                key={`${currentIdx}-${idx}-${opt}`}
+                opt={opt}
+                index={idx}
+                selected={selectedAnswer}
+                correct={Array.isArray(currentQ.correctAnswer) ? currentQ.correctAnswer[0] : currentQ.correctAnswer}
+                isAnswered={isAnswered}
+                onClick={() => handleAnswer(opt)}
+              />
+            ))}
+        </div>
+      )}
 
       {/* Explanation + Next */}
       <AnimatePresence>
@@ -394,6 +484,12 @@ export default function QuizGame({
   )
 }
 
+// An option made only of emoji/pictographs (e.g. "🔴" or "🐄") — render it huge
+function isEmojiOnly(text: string): boolean {
+  const stripped = text.replace(/[\p{Extended_Pictographic}‍️\s]/gu, '')
+  return stripped.length === 0 && text.trim().length > 0
+}
+
 function AnswerButton({
   opt, index, selected, correct, isAnswered, onClick,
 }: {
@@ -404,8 +500,9 @@ function AnswerButton({
   const LABELS = ['A', 'B', 'C', 'D', 'E', 'F']
   const label = LABELS[index] ?? String(index + 1)
 
+  const isPicture = isEmojiOnly(opt)
   // Detect if opt is a "visual" answer: pure number, short text (≤6 chars), or starts with emoji
-  const isVisual = /^[\d.%+\-×÷=]+$/.test(opt.trim()) || opt.trim().length <= 5
+  const isVisual = isPicture || /^[\d.%+\-×÷=]+$/.test(opt.trim()) || opt.trim().length <= 5
 
   return (
     <motion.button
@@ -416,6 +513,7 @@ function AnswerButton({
       className={cn(
         'answer-option transition-all',
         isVisual ? 'flex-col items-center justify-center text-center py-5 min-h-[72px]' : 'text-left',
+        isPicture && 'py-6 min-h-[110px]',
         isAnswered && isCorrect && 'correct',
         isAnswered && isSelected && !isCorrect && 'wrong',
         !isAnswered && 'hover:border-primary hover:bg-primary/5'
@@ -423,7 +521,7 @@ function AnswerButton({
     >
       {isVisual ? (
         <>
-          <span className="font-display font-bold text-2xl mb-1">{opt}</span>
+          <span className={cn('font-display font-bold mb-1', isPicture ? 'text-6xl' : 'text-2xl')}>{opt}</span>
           <span className={cn(
             'text-xs font-bold px-2 py-0.5 rounded-full',
             !isAnswered && 'bg-gray-100 text-gray-500',

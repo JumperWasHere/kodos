@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth/config'
 import { connectDB } from '@/lib/db/connect'
 import { Student } from '@/lib/db/models'
 
 // GET /api/leaderboard?type=xp&limit=20
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     await connectDB()
 
     const { searchParams } = new URL(req.url)

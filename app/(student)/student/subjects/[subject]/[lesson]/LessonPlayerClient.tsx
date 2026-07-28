@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, BookOpen, Clock, Zap } from 'lucide-react'
 import QuizGame from '@/components/subjects/QuizGame'
 import { toast } from 'sonner'
-import type { QuizQuestion } from '@/types'
+import type { AgeGroup, LessonLanguage, QuizQuestion } from '@/types'
 
 interface Props {
   lesson: {
@@ -13,6 +13,8 @@ interface Props {
     description?: string
     type: string
     subjectSlug: string
+    ageGroup?: AgeGroup
+    language?: LessonLanguage
     xpReward: number
     coinReward: number
     duration: number
@@ -63,6 +65,8 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
           questions={lesson.questions}
           xpReward={lesson.xpReward}
           coinReward={lesson.coinReward}
+          ageGroup={lesson.ageGroup}
+          language={lesson.language}
           onComplete={handleComplete}
           onBack={handleBack}
         />

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Types } from 'mongoose'
 import { auth } from '@/lib/auth/config'
 import { connectDB } from '@/lib/db/connect'
 import { Progress, Student, Lesson } from '@/lib/db/models'
+import { getLevelFromXP } from '@/lib/utils'
 import { z } from 'zod'
 
 // GET /api/progress?studentId=xxx
@@ -42,6 +44,13 @@ const CompleteSchema = z.object({
 function answersMatch(expected: string | string[], submitted: string | string[] | undefined) {
   if (submitted === undefined) return false
   const normalize = (value: string) => value.trim().toLocaleLowerCase()
+
+  // A single submitted answer against an array of accepted answers means
+  // "any of these is correct" (e.g. fill-in-the-blank alternates).
+  if (Array.isArray(expected) && !Array.isArray(submitted)) {
+    return expected.map(normalize).includes(normalize(submitted))
+  }
+
   const expectedAnswers = (Array.isArray(expected) ? expected : [expected]).map(normalize).sort()
   const submittedAnswers = (Array.isArray(submitted) ? submitted : [submitted]).map(normalize).sort()
 
@@ -53,7 +62,6 @@ function answersMatch(expected: string | string[], submitted: string | string[] 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    console.log('Session:', session)
     if (!session?.user?.studentId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -65,6 +73,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { lessonId, timeSpent, answers = {} } = parsed.data
+
+    if (!Types.ObjectId.isValid(lessonId)) {
+      return NextResponse.json({ error: 'Invalid lesson id' }, { status: 400 })
+    }
 
     await connectDB()
 
@@ -166,6 +178,10 @@ export async function POST(req: NextRequest) {
         }
       )
     } else {
+      const subjectLessonCount = await Lesson.countDocuments({
+        subjectSlug: lesson.subjectSlug,
+        isActive: true,
+      })
       await Student.updateOne(
         { _id: student._id },
         {
@@ -174,7 +190,7 @@ export async function POST(req: NextRequest) {
             subjectProgress: {
               subjectSlug: lesson.subjectSlug,
               completedLessons: 1,
-              totalLessons: lesson.totalCompletions ?? 1,
+              totalLessons: Math.max(subjectLessonCount, 1),
               xpEarned: earnedXP,
               masteryLevel: Math.round(scorePct / 10),
               lastAccessedAt: new Date(),
@@ -182,6 +198,15 @@ export async function POST(req: NextRequest) {
           },
         }
       )
+    }
+
+    // Keep the stored level in sync with the shared XP curve
+    const updatedStudent = await Student.findById(student._id).select('xp level').lean() as any
+    if (updatedStudent) {
+      const newLevel = getLevelFromXP(updatedStudent.xp ?? 0)
+      if (newLevel !== updatedStudent.level) {
+        await Student.updateOne({ _id: student._id }, { $set: { level: newLevel } })
+      }
     }
 
     // Update lesson stats

@@ -36,6 +36,15 @@ interface DailyTask {
   target: number
 }
 
+interface StudentAssignment {
+  _id: string
+  title: string
+  lessonId: string
+  subjectSlug: SubjectSlug
+  dueDate: string | null
+  completed: boolean
+}
+
 interface Props {
   student: {
     displayName: string
@@ -59,6 +68,7 @@ interface Props {
     isPremium: boolean
   }>
   dailyTasks: DailyTask[]
+  assignments?: StudentAssignment[]
   userName: string
 }
 
@@ -67,7 +77,7 @@ const STAGGER = {
   item: { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } },
 }
 
-export default function StudentDashboardClient({ student, subjects, dailyTasks, userName }: Props) {
+export default function StudentDashboardClient({ student, subjects, dailyTasks, assignments = [], userName }: Props) {
   const { syncWithServer, addXP } = useGamificationStore()
   const motivationMsg = randomFrom(MOTIVATION_MESSAGES)
 
@@ -259,6 +269,45 @@ export default function StudentDashboardClient({ student, subjects, dailyTasks, 
           transition={{ delay: 0.4 }}
           className="space-y-4"
         >
+          {/* Homework from teachers */}
+          {assignments.length > 0 && (
+            <div className="card-kid p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-display font-bold">My Homework 📝</h3>
+              </div>
+              <div className="space-y-2">
+                {assignments.slice(0, 5).map((a) => {
+                  const overdue = !a.completed && a.dueDate && new Date(a.dueDate) < new Date()
+                  return (
+                    <Link key={a._id} href={`/student/subjects/${a.subjectSlug}/${a.lessonId}`}>
+                      <div className={cn(
+                        'flex items-center gap-3 p-3 rounded-2xl transition-colors',
+                        a.completed ? 'bg-green-50 border border-green-200' : 'bg-blue-50 hover:bg-blue-100 border border-blue-100'
+                      )}>
+                        <span className="text-xl">{a.completed ? '✅' : getSubjectIcon(a.subjectSlug)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm font-semibold truncate', a.completed && 'line-through text-muted-foreground')}>
+                            {a.title}
+                          </p>
+                          {a.dueDate && !a.completed && (
+                            <p className={cn('text-[10px] font-bold', overdue ? 'text-red-500' : 'text-muted-foreground')}>
+                              Due {new Date(a.dueDate).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}
+                              {overdue && ' — hurry!'}
+                            </p>
+                          )}
+                        </div>
+                        {!a.completed && <PlayCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Daily Tasks */}
           <div className="card-kid p-5">
             <div className="flex items-center gap-2 mb-4">

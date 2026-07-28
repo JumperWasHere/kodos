@@ -24,12 +24,16 @@ const signupSchema = z.object({
     .regex(/[0-9]/, 'Must contain at least one number'),
   confirmPassword: z.string(),
   role: z.enum(['student', 'parent', 'teacher']),
+  ageGroup: z.enum(['toddler', 'preschool', 'lower_primary', 'upper_primary']).optional(),
   agreeToTerms: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to the terms' }),
   }),
 }).refine((d) => d.password === d.confirmPassword, {
   path: ['confirmPassword'],
   message: 'Passwords do not match',
+}).refine((d) => d.role !== 'student' || !!d.ageGroup, {
+  path: ['ageGroup'],
+  message: 'Please pick an age group',
 })
 
 type SignupData = z.infer<typeof signupSchema>
@@ -39,6 +43,13 @@ const ROLES = [
   { value: 'student' as UserRole, label: 'Student', emoji: '🎒', desc: 'Learn & earn rewards' },
   { value: 'teacher' as UserRole, label: 'Teacher', emoji: '👩‍🏫', desc: 'Manage your class' },
 ]
+
+const AGE_GROUPS = [
+  { value: 'toddler', label: 'Little Ones', desc: 'Ages 1–3', emoji: '👶' },
+  { value: 'preschool', label: 'Preschool', desc: 'Ages 3–6', emoji: '🧸' },
+  { value: 'lower_primary', label: 'Lower Primary', desc: 'Ages 7–9 · Year 1–3', emoji: '✏️' },
+  { value: 'upper_primary', label: 'Upper Primary', desc: 'Ages 10–12 · Year 4–6', emoji: '🎓' },
+] as const
 
 export default function SignupPage() {
   const router = useRouter()
@@ -57,6 +68,7 @@ export default function SignupPage() {
   })
 
   const selectedRole = watch('role')
+  const selectedAgeGroup = watch('ageGroup')
 
   const onSubmit = async (data: SignupData) => {
     setIsLoading(true)
@@ -69,6 +81,7 @@ export default function SignupPage() {
           email: data.email,
           password: data.password,
           role: data.role,
+          ...(data.role === 'student' && data.ageGroup ? { ageGroup: data.ageGroup } : {}),
         }),
       })
 
@@ -124,6 +137,33 @@ export default function SignupPage() {
             ))}
           </div>
         </div>
+
+        {/* Age group (students only) */}
+        {selectedRole === 'student' && (
+          <div>
+            <label className="block text-sm font-bold mb-2">My age group is...</label>
+            <div className="grid grid-cols-2 gap-2">
+              {AGE_GROUPS.map((group) => (
+                <button
+                  key={group.value}
+                  type="button"
+                  onClick={() => setValue('ageGroup', group.value, { shouldValidate: true })}
+                  className={cn(
+                    'flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all text-center',
+                    selectedAgeGroup === group.value
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <span className="text-2xl">{group.emoji}</span>
+                  <span className="font-bold text-xs">{group.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{group.desc}</span>
+                </button>
+              ))}
+            </div>
+            {errors.ageGroup && <p className="text-red-500 text-xs mt-1">{errors.ageGroup.message}</p>}
+          </div>
+        )}
 
         {/* Name */}
         <div>
