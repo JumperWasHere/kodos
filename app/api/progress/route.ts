@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { auth } from '@/lib/auth/config'
 import { connectDB } from '@/lib/db/connect'
-import { Progress, Student, Lesson } from '@/lib/db/models'
+import { Progress, Student, Lesson, Badge } from '@/lib/db/models'
 import { getLevelFromXP } from '@/lib/utils'
 import { z } from 'zod'
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     await connectDB()
 
     const [lesson, student] = await Promise.all([
-      Lesson.findById(lessonId).lean() as any,
+      Lesson.findOne({ _id: lessonId, isActive: true }).lean() as any,
       Student.findById(session.user.studentId),
     ])
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Scores and rewards are calculated from the stored answer key, never from
-    // client-provided totals.
+    // client-provided totals, which keeps grading consistent and prevents tampering.
     const questions = lesson.questions ?? []
     const totalPoints = questions.reduce((total: number, question: { points: number }) => total + question.points, 0)
     const earnedPoints = questions.reduce((total: number, question: { id: string; points: number; correctAnswer: string | string[] }) => (
@@ -207,6 +207,31 @@ export async function POST(req: NextRequest) {
       if (newLevel !== updatedStudent.level) {
         await Student.updateOne({ _id: student._id }, { $set: { level: newLevel } })
       }
+    }
+
+    // Award newly satisfied badges after the completion has been persisted.
+    const refreshedStudent = await Student.findById(student._id).select('xp streakDays subjectProgress badges').lean() as any
+    if (refreshedStudent) {
+      const [completedCount, perfectCount, badges] = await Promise.all([
+        Progress.countDocuments({ studentId: student._id, status: 'completed' }),
+        Progress.countDocuments({ studentId: student._id, status: 'completed', score: 100 }),
+        Badge.find({ isActive: true }).lean() as unknown as any[],
+      ])
+      const owned = new Set((refreshedStudent.badges ?? []).map((id: { toString(): string }) => id.toString()))
+      const earned = badges.filter((badge) => {
+        if (owned.has(badge._id.toString())) return false
+        const requirement = badge.requirement
+        if (requirement.type === 'lessons') return completedCount >= requirement.value
+        if (requirement.type === 'xp') return (refreshedStudent.xp ?? 0) >= requirement.value
+        if (requirement.type === 'streak') return (refreshedStudent.streakDays ?? 0) >= requirement.value
+        if (requirement.type === 'perfect_score') return perfectCount >= requirement.value
+        if (requirement.type === 'subject_mastery') {
+          const subject = refreshedStudent.subjectProgress?.find((p: { subjectSlug: string }) => p.subjectSlug === requirement.subjectSlug)
+          return subject && subject.totalLessons > 0 && subject.completedLessons >= subject.totalLessons
+        }
+        return false
+      })
+      if (earned.length) await Student.updateOne({ _id: student._id }, { $addToSet: { badges: { $each: earned.map((badge) => badge._id) } } })
     }
 
     // Update lesson stats
