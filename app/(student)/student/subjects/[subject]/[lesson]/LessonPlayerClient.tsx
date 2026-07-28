@@ -5,6 +5,9 @@ import { ArrowLeft, Clock, Zap } from 'lucide-react'
 import QuizGame from '@/components/subjects/QuizGame'
 import StoryPlayer from '@/components/subjects/StoryPlayer'
 import type { AgeGroup, LearningPoint, LessonLanguage, QuizQuestion, StoryPage } from '@/types'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   lesson: {
@@ -20,12 +23,14 @@ interface Props {
     duration: number
     difficulty: string
     questions?: QuizQuestion[]
-    storyPages?: StoryPage[]
     learningPoints?: LearningPoint[]
     activityPrompts?: string[]
     songTitle?: string
     songLyrics?: string
     songAudioUrl?: string
+    videoUrl?: string
+    worksheetUrl?: string
+    storyPages?: StoryPage[]
     isPremium: boolean
   }
   subject: {
@@ -40,6 +45,8 @@ interface Props {
 
 export default function LessonPlayerClient({ lesson, subject, studentId }: Props) {
   const router = useRouter()
+  const [storyPage, setStoryPage] = useState(0)
+  const [isCompleting, setIsCompleting] = useState(false)
 
   const handleComplete = async (_score: number, _xpEarned: number, _coinsEarned: number, answers: Record<string, string | string[]>) => {
     const response = await fetch('/api/progress', {
@@ -61,6 +68,23 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     router.push(`/student/subjects/${subject.slug}`)
   }
 
+  const completeLesson = async () => {
+    setIsCompleting(true)
+    try {
+      const response = await fetch('/api/progress', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId: lesson._id, timeSpent: lesson.duration * 60, answers: {} }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error)
+      toast.success(payload.data.alreadyCompleted ? 'Lesson already completed!' : `Great work! +${payload.data.xpEarned} XP`)
+    } catch {
+      toast.error('Unable to save lesson progress. Please try again.')
+    } finally {
+      setIsCompleting(false)
+    }
+  }
+
   // Render quiz for quiz/game/interactive types
   if (['quiz', 'game', 'interactive'].includes(lesson.type) && lesson.questions?.length) {
     return (
@@ -80,7 +104,8 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     )
   }
 
-  // Render the story player for story-type lessons
+  // Render the full story player (pages, learning points, activity, song) for
+  // story-type lessons that actually have pages authored.
   if (lesson.type === 'story' && lesson.storyPages?.length) {
     return (
       <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
@@ -103,7 +128,9 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     )
   }
 
-  // Video / worksheet — placeholder with back button
+  // Video / worksheet / interactive-without-questions / empty story — simple fallback UI
+  const page = lesson.storyPages?.[storyPage]
+
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
       <button
@@ -113,7 +140,7 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
         <ArrowLeft className="w-4 h-4" /> Back to {subject.name}
       </button>
 
-      <div className="card-kid p-8 text-center space-y-4">
+      <div className="card-kid p-6 md:p-8 space-y-5">
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mx-auto"
           style={{ background: `linear-gradient(135deg, ${subject.color}33, ${subject.color}11)` }}
@@ -135,9 +162,30 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
             🪙 {lesson.coinReward}
           </span>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800 text-sm font-semibold">
-          🚧 This content type is coming soon! Check back for {lesson.type} lessons.
-        </div>
+        {lesson.type === 'video' && (lesson.videoUrl ? (
+          <video controls className="w-full rounded-2xl" src={lesson.videoUrl}>Your browser does not support video playback.</video>
+        ) : <p className="text-sm text-muted-foreground text-center">This lesson does not have a video attached yet.</p>)}
+
+        {lesson.type === 'story' && (page ? <>
+          {page.imageUrl && <img src={page.imageUrl} alt="Story illustration" className="w-full max-h-80 object-cover rounded-2xl" />}
+          <p className="text-lg leading-relaxed whitespace-pre-line">{page.text}</p>
+          <div className="flex justify-between gap-3">
+            <Button variant="outline" disabled={storyPage === 0} onClick={() => setStoryPage((p) => p - 1)}>Previous</Button>
+            {storyPage < lesson.storyPages!.length - 1
+              ? <Button onClick={() => setStoryPage((p) => p + 1)}>Next page</Button>
+              : <Button onClick={completeLesson} disabled={isCompleting}>{isCompleting ? 'Saving…' : 'Finish story'}</Button>}
+          </div>
+        </> : <p className="text-sm text-muted-foreground text-center">This story has no pages yet.</p>)}
+
+        {lesson.type === 'worksheet' && <div className="text-center space-y-3">
+          {lesson.worksheetUrl ? <a href={lesson.worksheetUrl} target="_blank" rel="noreferrer" className="text-primary font-bold underline">Open worksheet</a> : <p className="text-sm text-muted-foreground">This worksheet has not been attached yet.</p>}
+          <Button onClick={completeLesson} disabled={isCompleting}>{isCompleting ? 'Saving…' : 'Mark worksheet complete'}</Button>
+        </div>}
+
+        {['interactive', 'game'].includes(lesson.type) && <div className="text-center space-y-3">
+          <p className="text-sm text-muted-foreground">Complete the activity, then record your completion.</p>
+          <Button onClick={completeLesson} disabled={isCompleting}>{isCompleting ? 'Saving…' : 'Complete activity'}</Button>
+        </div>}
       </div>
     </div>
   )

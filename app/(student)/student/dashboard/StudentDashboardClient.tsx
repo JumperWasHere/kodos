@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -17,6 +17,7 @@ import {
   formatXP, percentOf, MOTIVATION_MESSAGES, randomFrom
 } from '@/lib/utils'
 import type { SubjectSlug } from '@/types'
+import { toast } from 'sonner'
 
 interface SubjectProgress {
   subjectSlug: SubjectSlug
@@ -70,6 +71,7 @@ interface Props {
   dailyTasks: DailyTask[]
   assignments?: StudentAssignment[]
   userName: string
+  dailyRewardClaimed: boolean
 }
 
 const STAGGER = {
@@ -77,10 +79,31 @@ const STAGGER = {
   item: { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } },
 }
 
-export default function StudentDashboardClient({ student, subjects, dailyTasks, assignments = [], userName }: Props) {
+export default function StudentDashboardClient({ student, subjects, dailyTasks, assignments = [], userName, dailyRewardClaimed }: Props) {
   const { syncWithServer, addXP } = useGamificationStore()
   const motivationMsg = randomFrom(MOTIVATION_MESSAGES)
+  // Keep the daily reward state local so the UI can reflect the claim immediately.
+  const [rewardClaimed, setRewardClaimed] = useState(dailyRewardClaimed)
+  const [claimingReward, setClaimingReward] = useState(false)
 
+  // Claiming the daily reward is handled server-side so XP and coin updates stay consistent.
+  const claimDailyReward = async () => {
+    setClaimingReward(true)
+    try {
+      const response = await fetch('/api/gamification', { method: 'POST' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error)
+      setRewardClaimed(true)
+      syncWithServer({ xp: (student?.xp ?? 0) + payload.data.xpReward, coins: (student?.coins ?? 0) + payload.data.coinReward })
+      toast.success(`Daily reward claimed: +${payload.data.xpReward} XP and +${payload.data.coinReward} coins!`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to claim reward')
+    } finally {
+      setClaimingReward(false)
+    }
+  }
+
+  // Sync the global gamification store whenever the student profile changes.
   useEffect(() => {
     if (student) {
       syncWithServer({
@@ -124,6 +147,9 @@ export default function StudentDashboardClient({ student, subjects, dailyTasks, 
             <h1 className="font-display text-3xl font-bold mb-3">
               Hey, {userName}! 👋
             </h1>
+            <Button size="sm" variant={rewardClaimed ? 'outline' : 'yellow'} className="mb-3" onClick={claimDailyReward} disabled={rewardClaimed || claimingReward}>
+              {rewardClaimed ? '✓ Daily reward claimed' : claimingReward ? 'Claiming…' : '🎁 Claim daily reward'}
+            </Button>
 
             {/* XP & Stats row */}
             <div className="flex flex-wrap items-center gap-4 mb-4">

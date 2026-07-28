@@ -44,7 +44,7 @@ export default async function StudentDashboardPage() {
   const [session] = await Promise.all([auth(), connectDB()])
   if (!session?.user?.id) return null
 
-  const [student, subjects, assignments] = await Promise.all([
+  const [rawStudent, subjects, assignments] = await Promise.all([
     Student.findOne({ userId: session.user.id })
       .populate('badges', 'name emoji rarity')
       .lean(),
@@ -54,12 +54,21 @@ export default async function StudentDashboardPage() {
       .lean(),
     getAssignments(session.user.studentId),
   ])
+  const student = rawStudent as any
 
-  // Calculate daily tasks
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const todayProgress = student
+    ? await Progress.find({ studentId: student._id, status: 'completed', completedAt: { $gte: startOfToday } }).select('score').lean()
+    : []
+  const completedToday = todayProgress.length
+  const hasHighScoreToday = todayProgress.some((p) => (p.score ?? 0) >= 80)
+
+  // Calculate daily tasks from actual completion records.
   const dailyTasks = [
-    { id: '1', title: 'Complete 3 lessons', emoji: '📚', reward: 30, current: 1, target: 3 },
-    { id: '2', title: 'Score 80%+ on a quiz', emoji: '🎯', reward: 50, current: 0, target: 1 },
-    { id: '3', title: 'Login streak', emoji: '🔥', reward: 20, current: 1, target: 1 },
+    { id: '1', title: 'Complete 3 lessons', emoji: '📚', reward: 30, current: completedToday, target: 3 },
+    { id: '2', title: 'Score 80%+ on a quiz', emoji: '🎯', reward: 50, current: hasHighScoreToday ? 1 : 0, target: 1 },
+    { id: '3', title: 'Login streak', emoji: '🔥', reward: 20, current: student?.streakDays ? 1 : 0, target: 1 },
   ]
 
   return (
@@ -69,6 +78,7 @@ export default async function StudentDashboardPage() {
       dailyTasks={dailyTasks}
       assignments={assignments}
       userName={session.user.displayName || session.user.name || 'Explorer'}
+      dailyRewardClaimed={student?.lastDailyRewardDate ? new Date(student.lastDailyRewardDate) >= startOfToday : false}
     />
   )
 }

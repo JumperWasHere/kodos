@@ -19,7 +19,7 @@ export default async function LessonPlayerPage({ params }: Props) {
   if (!Types.ObjectId.isValid(lessonId)) notFound()
 
   const [lesson, subject, student] = await Promise.all([
-    Lesson.findById(lessonId).lean() as any,
+    Lesson.findOne({ _id: lessonId, subjectSlug: slug, isActive: true }).lean() as any,
     Subject.findOne({ slug, isActive: true }).lean() as any,
     Student.findOne({ userId: session.user.id }).lean() as any,
   ])
