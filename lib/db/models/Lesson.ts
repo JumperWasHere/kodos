@@ -22,6 +22,12 @@ export interface IStoryPage {
   hasInteraction?: boolean
 }
 
+// A big visual "you learned this!" recap card shown after a story (e.g. 🔴 Red Apple)
+export interface ILearningPoint {
+  emoji: string
+  label: string
+}
+
 export interface ILessonDocument extends Document {
   title: string
   titleMs?: string
@@ -43,6 +49,11 @@ export interface ILessonDocument extends Document {
   videoUrl?: string
   questions?: IQuizQuestion[]
   storyPages?: IStoryPage[]
+  learningPoints?: ILearningPoint[]
+  activityPrompts?: string[]
+  songTitle?: string
+  songLyrics?: string
+  songAudioUrl?: string
   gameData?: Record<string, unknown>
   worksheetUrl?: string
   // Meta
@@ -91,6 +102,14 @@ const StoryPageSchema = new Schema<IStoryPage>(
   { _id: false }
 )
 
+const LearningPointSchema = new Schema<ILearningPoint>(
+  {
+    emoji: { type: String, required: true },
+    label: { type: String, required: true },
+  },
+  { _id: false }
+)
+
 const LessonSchema = new Schema<ILessonDocument>(
   {
     title: { type: String, required: true, trim: true },
@@ -129,6 +148,11 @@ const LessonSchema = new Schema<ILessonDocument>(
     videoUrl: { type: String },
     questions: [QuizQuestionSchema],
     storyPages: [StoryPageSchema],
+    learningPoints: [LearningPointSchema],
+    activityPrompts: [{ type: String }],
+    songTitle: { type: String },
+    songLyrics: { type: String },
+    songAudioUrl: { type: String },
     gameData: { type: Schema.Types.Mixed },
     worksheetUrl: { type: String },
     // Meta

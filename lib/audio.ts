@@ -27,6 +27,48 @@ const VOICE_FALLBACKS: Record<LessonLanguage, string[]> = {
   ar: ['ar'],
 }
 
+// The Web Speech API has no real "gender" field, and no browser can clone a
+// specific real person's voice — so instead we recognize known warm, female
+// narrator voices by name (the same category of voice used by popular
+// children's-content narrators) and rank them highest. Covers Edge's
+// natural online voices, Windows/macOS desktop voices, and Android/Chrome.
+// Earlier names in each list are preferred.
+const FEMALE_VOICE_HINTS: Record<LessonLanguage, string[]> = {
+  en: [
+    'aria', 'jenny', 'ana',            // Edge "Online (Natural)" voices
+    'samantha',                        // macOS / iOS default
+    'zira', 'susan', 'hazel', 'eva',   // Windows desktop voices
+    'google us english female', 'google uk english female',
+  ],
+  ms: [
+    'yasmin',              // Edge "Online (Natural)" Malay
+    'gadis', 'damayanti',  // Windows / Android Malay & Indonesian
+  ],
+  zh: [
+    'xiaoxiao', 'xiaoyi', 'yaoyao',  // Edge "Online (Natural)" Chinese
+    'ting-ting',                     // macOS / iOS
+    'huihui',                        // Windows desktop
+  ],
+  ar: [
+    'salma', 'zariyah', 'amina', // Edge "Online (Natural)" Arabic
+  ],
+}
+
+/** Higher score = warmer / more likely a female narrator voice. */
+function voiceScore(voice: SpeechSynthesisVoice, language: LessonLanguage): number {
+  const name = voice.name.toLowerCase()
+  let score = 0
+
+  const hintIndex = FEMALE_VOICE_HINTS[language].findIndex((hint) => name.includes(hint))
+  if (hintIndex !== -1) score += 100 - hintIndex
+
+  if (name.includes('female')) score += 20
+  if (name.includes('male') && !name.includes('female')) score -= 50
+  if (name.includes('online (natural)') || name.includes('neural')) score += 10
+
+  return score
+}
+
 // Strip emoji and pictographs so the voice doesn't read "red circle red circle"
 function cleanForSpeech(text: string): string {
   return text
@@ -44,8 +86,10 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 function pickVoice(language: LessonLanguage): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   for (const prefix of VOICE_FALLBACKS[language]) {
-    const match = voices.find((v) => v.lang.replace('_', '-').toLowerCase().startsWith(prefix))
-    if (match) return match
+    const candidates = voices.filter((v) => v.lang.replace('_', '-').toLowerCase().startsWith(prefix))
+    if (candidates.length === 0) continue
+    // Prefer the warmest-sounding female voice among this language's candidates
+    return [...candidates].sort((a, b) => voiceScore(b, language) - voiceScore(a, language))[0]
   }
   return null
 }
@@ -73,6 +117,31 @@ export function speak(text: string, language: LessonLanguage = 'en') {
 export function stopSpeaking() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
   window.speechSynthesis.cancel()
+}
+
+let currentAudio: HTMLAudioElement | null = null
+
+/**
+ * Play a real recorded audio file (narration, song, sound effect) — this is
+ * a genuine human voice/recording, unlike `speak()` which is synthesized.
+ * Stops any previously playing file first.
+ */
+export function playAudioFile(url: string) {
+  if (typeof window === 'undefined') return
+  stopAudioFile()
+  currentAudio = new Audio(url)
+  currentAudio.play().catch(() => {
+    // Autoplay can be blocked by the browser until the user interacts with
+    // the page; the visible 🔊/▶ button remains a manual fallback.
+  })
+}
+
+export function stopAudioFile() {
+  if (currentAudio) {
+    currentAudio.pause()
+    currentAudio.currentTime = 0
+    currentAudio = null
+  }
 }
 
 let audioCtx: AudioContext | null = null

@@ -33,7 +33,7 @@ const UserSchema = new mongoose.Schema({
   lastLoginAt: Date,
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
 const StudentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -58,11 +58,16 @@ const StudentSchema = new mongoose.Schema({
   isPremium: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
+// strict: false so these seeding-only schemas never silently drop a field
+// that the real app models (lib/db/models/*) declare but this file's
+// hand-written copy doesn't happen to list — this bit the toddler story
+// lesson (storyPages/learningPoints/etc. were being stripped on insert).
 const SubjectSchema = new mongoose.Schema({
   name: String,
   nameMs: String,
+  nameMandarin: String,
   slug: { type: String, unique: true },
   description: String,
   descriptionMs: String,
@@ -81,31 +86,46 @@ const SubjectSchema = new mongoose.Schema({
   topics: [mongoose.Schema.Types.Mixed],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
 const LessonSchema = new mongoose.Schema({
   title: String,
+  titleMs: String,
   description: String,
+  descriptionMs: String,
   subjectId: mongoose.Schema.Types.ObjectId,
   subjectSlug: String,
+  topicId: String,
   ageGroup: String,
   grade: [Number],
   type: String,
   difficulty: String,
+  language: String,
   thumbnail: String,
   duration: Number,
   xpReward: Number,
   coinReward: Number,
+  videoUrl: String,
   questions: [mongoose.Schema.Types.Mixed],
+  storyPages: [mongoose.Schema.Types.Mixed],
+  learningPoints: [mongoose.Schema.Types.Mixed],
+  activityPrompts: [String],
+  songTitle: String,
+  songLyrics: String,
+  songAudioUrl: String,
+  gameData: mongoose.Schema.Types.Mixed,
+  worksheetUrl: String,
   isPremium: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   order: Number,
+  prerequisites: [mongoose.Schema.Types.ObjectId],
   tags: [String],
+  createdBy: mongoose.Schema.Types.ObjectId,
   totalCompletions: { type: Number, default: 0 },
   averageScore: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
 const BadgeSchema = new mongoose.Schema({
   name: String,
@@ -123,7 +143,7 @@ const BadgeSchema = new mongoose.Schema({
   order: Number,
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
 const SubscriptionSchema = new mongoose.Schema({
   userId: mongoose.Schema.Types.ObjectId,
@@ -137,7 +157,7 @@ const SubscriptionSchema = new mongoose.Schema({
   currency: { type: String, default: 'myr' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-})
+}, { strict: false })
 
 // ── Models ──────────────────────────────────────────────────────────────────
 const User = mongoose.models.User || mongoose.model('User', UserSchema)

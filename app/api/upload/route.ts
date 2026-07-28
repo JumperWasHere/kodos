@@ -3,10 +3,13 @@ import { auth } from '@/lib/auth/config'
 import { connectDB } from '@/lib/db/connect'
 import { Media } from '@/lib/db/models'
 
-const MAX_SIZE = 2 * 1024 * 1024 // 2MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+const AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm']
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
+const MAX_AUDIO_SIZE = 8 * 1024 * 1024 // 8MB — a minute or two of MP3 narration/song
 
-// POST /api/upload — teachers and admins upload quiz images (multipart/form-data, field "file")
+// POST /api/upload — teachers and admins upload quiz images or story narration/song
+// audio (multipart/form-data, field "file")
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
@@ -20,15 +23,20 @@ export async function POST(req: NextRequest) {
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
+
+    const isImage = IMAGE_TYPES.includes(file.type)
+    const isAudio = AUDIO_TYPES.includes(file.type)
+    if (!isImage && !isAudio) {
       return NextResponse.json(
-        { success: false, error: 'Only JPEG, PNG, WebP, GIF, or SVG images are allowed' },
+        { success: false, error: 'Only JPEG/PNG/WebP/GIF/SVG images or MP3/WAV/OGG audio files are allowed' },
         { status: 400 }
       )
     }
-    if (file.size > MAX_SIZE) {
+
+    const maxSize = isAudio ? MAX_AUDIO_SIZE : MAX_IMAGE_SIZE
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, error: 'Image must be 2MB or smaller' },
+        { success: false, error: `${isAudio ? 'Audio' : 'Image'} must be ${maxSize / (1024 * 1024)}MB or smaller` },
         { status: 400 }
       )
     }

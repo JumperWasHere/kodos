@@ -328,5 +328,63 @@ export function getToddlerLessons(subjectMap: Record<string, unknown>) {
         },
       ],
     },
+
+    // ── STORY: Benny the Blue Bunny (colors, read aloud + sing-along) ──────
+    {
+      ageGroup: 'toddler', grade: [0], type: 'story', difficulty: 'easy',
+      isPremium: false, isActive: true,
+      title: 'Benny the Blue Bunny 🐰',
+      description: 'A gentle color story to read together — meet Benny and his colorful garden friends!',
+      subjectId: subjectMap['art'], subjectSlug: 'art', topicId: 'coloring',
+      language: 'en', duration: 6, xpReward: 30, coinReward: 15, order: 32,
+      tags: ['toddler', 'story', 'colors', 'read-aloud'],
+      storyPages: [
+        {
+          pageNumber: 1,
+          text: 'Benny was a little blue bunny.\nOne sunny morning, he hopped into a garden.',
+          imageUrl: '/illustrations/benny-1-garden.svg',
+        },
+        {
+          pageNumber: 2,
+          text: 'He saw a red apple.\n"Hello, Red Apple!" said Benny.',
+          imageUrl: '/illustrations/benny-2-apple.svg',
+        },
+        {
+          pageNumber: 3,
+          text: 'He saw a yellow flower.\n"Hello, Yellow Flower!" said Benny.',
+          imageUrl: '/illustrations/benny-3-flower.svg',
+        },
+        {
+          pageNumber: 4,
+          text: 'He saw a green leaf dancing in the wind.\n"Hello, Green Leaf!" said Benny.',
+          imageUrl: '/illustrations/benny-4-leaf.svg',
+        },
+        {
+          pageNumber: 5,
+          text: 'At the end of the day, Benny smiled.\n"I learned so many colors today!"',
+          imageUrl: '/illustrations/benny-5-happy.svg',
+        },
+      ],
+      learningPoints: [
+        { emoji: '🔴', label: 'Red Apple' },
+        { emoji: '🟡', label: 'Yellow Flower' },
+        { emoji: '🟢', label: 'Green Leaf' },
+        { emoji: '🔵', label: 'Blue Bunny' },
+      ],
+      activityPrompts: [
+        'Can you find something red in the room?',
+        'Can you point to something yellow?',
+        'What color is the grass?',
+        'What color is Benny the Bunny?',
+      ],
+      songTitle: 'Colors, Colors Everywhere! 🎵',
+      songLyrics:
+        'Red, red apple high on a tree,\n' +
+        'Yellow flower smiles at me.\n' +
+        'Green leaf dancing in the sky,\n' +
+        'Blue bunny hopping by and by.\n\n' +
+        'Colors, colors everywhere,\n' +
+        'Can you find them? Look and stare!',
+    },
   ]
 }

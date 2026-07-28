@@ -1,10 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, BookOpen, Clock, Zap } from 'lucide-react'
+import { ArrowLeft, Clock, Zap } from 'lucide-react'
 import QuizGame from '@/components/subjects/QuizGame'
-import { toast } from 'sonner'
-import type { AgeGroup, LessonLanguage, QuizQuestion } from '@/types'
+import StoryPlayer from '@/components/subjects/StoryPlayer'
+import type { AgeGroup, LearningPoint, LessonLanguage, QuizQuestion, StoryPage } from '@/types'
 
 interface Props {
   lesson: {
@@ -20,6 +20,12 @@ interface Props {
     duration: number
     difficulty: string
     questions?: QuizQuestion[]
+    storyPages?: StoryPage[]
+    learningPoints?: LearningPoint[]
+    activityPrompts?: string[]
+    songTitle?: string
+    songLyrics?: string
+    songAudioUrl?: string
     isPremium: boolean
   }
   subject: {
@@ -74,7 +80,30 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     )
   }
 
-  // Story / video / worksheet — placeholder with back button
+  // Render the story player for story-type lessons
+  if (lesson.type === 'story' && lesson.storyPages?.length) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
+        <StoryPlayer
+          title={lesson.title}
+          pages={lesson.storyPages}
+          learningPoints={lesson.learningPoints}
+          activityPrompts={lesson.activityPrompts}
+          songTitle={lesson.songTitle}
+          songLyrics={lesson.songLyrics}
+          songAudioUrl={lesson.songAudioUrl}
+          xpReward={lesson.xpReward}
+          coinReward={lesson.coinReward}
+          ageGroup={lesson.ageGroup}
+          language={lesson.language}
+          onComplete={handleComplete}
+          onBack={handleBack}
+        />
+      </div>
+    )
+  }
+
+  // Video / worksheet — placeholder with back button
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
       <button

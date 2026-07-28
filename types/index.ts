@@ -197,6 +197,12 @@ export interface StoryPage {
   hasInteraction?: boolean
 }
 
+// A big visual "you learned this!" recap card shown after a story (e.g. 🔴 Red Apple)
+export interface LearningPoint {
+  emoji: string
+  label: string
+}
+
 // ---- PROGRESS TYPES --------------------------------------
 
 export interface SubjectProgress {
