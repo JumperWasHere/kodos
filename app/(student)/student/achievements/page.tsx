@@ -1,14 +1,14 @@
-import { auth } from '@/lib/auth/config'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { connectDB } from '@/lib/db/connect'
 import { Badge, Student } from '@/lib/db/models'
 import { Trophy, Lock } from 'lucide-react'
 import { cn, getRarityColor, getRarityLabel } from '@/lib/utils'
 
 export default async function AchievementsPage() {
-  const [session] = await Promise.all([auth(), connectDB()])
-  if (!session?.user?.id) return null
+  const [activeChild] = await Promise.all([getActiveChild(), connectDB()])
+  if (!activeChild) return null
   const [student, badges] = await Promise.all([
-    Student.findOne({ userId: session.user.id }).select('badges').lean() as any,
+    Student.findById(activeChild._id).select('badges').lean() as any,
     Badge.find({ isActive: true }).sort({ order: 1 }).lean() as unknown as any[],
   ])
   // Split badges into earned and locked sets so the page can show progress clearly.

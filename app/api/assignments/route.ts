@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
-import { connectDB } from '@/lib/db/connect'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { Assignment, Class, Progress } from '@/lib/db/models'
 
 // GET /api/assignments — assignments for the logged-in student, with completion status
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.studentId) {
+    const student = await getActiveChild()
+    if (!student) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    await connectDB()
-
-    const classes = await Class.find({ studentIds: session.user.studentId, isActive: true })
+    const classes = await Class.find({ studentIds: student._id, isActive: true })
       .select('_id name')
       .lean() as any[]
     if (classes.length === 0) {
@@ -30,7 +27,7 @@ export async function GET() {
 
     const lessonIds = assignments.map((a) => a.lessonId?._id).filter(Boolean)
     const completed = await Progress.find({
-      studentId: session.user.studentId,
+      studentId: student._id,
       lessonId: { $in: lessonIds },
       status: 'completed',
     }).select('lessonId score').lean() as any[]

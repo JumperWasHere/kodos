@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/config.edge'
 import { NextResponse } from 'next/server'
 
-const protectedRoutes = ['/student', '/parent', '/teacher', '/admin']
+const protectedRoutes = ['/student', '/parent', '/teacher', '/admin', '/profiles']
 const authRoutes = ['/login', '/signup', '/forgot-password']
 
 export default auth((req) => {
@@ -18,14 +18,14 @@ export default auth((req) => {
   }
 
   if (isAuthRoute && isAuthenticated) {
-    const role = req.auth?.user?.role ?? 'student'
+    const role = req.auth?.user?.role ?? 'parent'
     const redirectMap: Record<string, string> = {
-      student: '/student/dashboard',
-      parent: '/parent/dashboard',
+      student: '/student/dashboard', // legacy accounts during migration
+      parent: '/profiles',
       teacher: '/teacher/dashboard',
       admin: '/admin/dashboard',
     }
-    return NextResponse.redirect(new URL(redirectMap[role] ?? '/student/dashboard', req.url))
+    return NextResponse.redirect(new URL(redirectMap[role] ?? '/profiles', req.url))
   }
 
   const response = NextResponse.next()
