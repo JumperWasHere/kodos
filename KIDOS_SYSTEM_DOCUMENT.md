@@ -662,6 +662,12 @@ npm run seed
 
 ## 11. Changelog
 
+### 2026-07-29 — Claude Code workspace configuration
+- Added `CLAUDE.md` (root: shared rules, model routing policy, mandatory doc-sync rule),
+  `app/api/CLAUDE.md` (API/backend conventions), `components/CLAUDE.md` (UI conventions)
+- Added `.claude/agents/planner.md` (Fable 5, planning) and `.claude/agents/coder.md`
+  (Sonnet, execution) for cost-controlled model routing
+
 ### 2026-07-28 — Teacher tools, age categorization & bug fixes
 
 **New features**
