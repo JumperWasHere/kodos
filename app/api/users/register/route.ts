@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db/connect'
-import { User, Student } from '@/lib/db/models'
+import { User } from '@/lib/db/models'
 import { z } from 'zod'
 
 const RegisterSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   password: z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/),
-  role: z.enum(['student', 'parent', 'teacher']),
-  ageGroup: z.enum(['toddler', 'preschool', 'lower_primary', 'upper_primary']).optional(),
-  grade: z.number().int().min(0).max(6).optional(),
+  isParent: z.literal(true),
 })
-
-// Sensible default grade for each age group when none is given
-const DEFAULT_GRADE: Record<string, number> = {
-  toddler: 0,
-  preschool: 0,
-  lower_primary: 1,
-  upper_primary: 4,
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    const { name, email, password, role, ageGroup, grade } = parsed.data
+    const { name, email, password } = parsed.data
 
     // Check existing user
     const existing = await User.findOne({ email }).lean()
@@ -52,31 +42,16 @@ export async function POST(req: NextRequest) {
       name,
       email,
       password: hashedPw,
-      role,
+      role: 'parent',
       isEmailVerified: false, // In prod: send verification email
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
     })
-
-    // Create student profile if student role
-    if (role === 'student') {
-      const studentAgeGroup = ageGroup ?? 'lower_primary'
-      await Student.create({
-        userId: user._id,
-        displayName: name.split(' ')[0],
-        ageGroup: studentAgeGroup,
-        grade: grade ?? DEFAULT_GRADE[studentAgeGroup],
-        xp: 0,
-        level: 1,
-        coins: 100, // Starting coins
-        streakDays: 0,
-      })
-    }
 
     return NextResponse.json(
       {
         success: true,
         message: 'Account created successfully',
-        data: { id: user._id.toString(), role },
+        data: { id: user._id.toString(), role: 'parent' },
       },
       { status: 201 }
     )

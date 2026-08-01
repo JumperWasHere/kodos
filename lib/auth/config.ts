@@ -46,7 +46,7 @@ export const authConfig: NextAuthConfig = {
 
         await connectDB()
 
-        const user = await User.findOne({ email: credentials.email })
+        const user = await User.findOne({ email: credentials.email, role: 'parent' })
           .select('+password')
           .lean() as any
 
@@ -79,11 +79,20 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
-        token.role = (user as { role?: UserRole }).role ?? 'student'
+        token.role = (user as { role?: UserRole }).role ?? 'parent'
       }
 
       if (trigger === 'update' && session) {
-        token = { ...token, ...session }
+        // Only a child owned by this parent can become the active context.
+        // The browser may request an ID, but it cannot grant itself access.
+        const requestedChildId = (session as { activeChildId?: string }).activeChildId
+        if (!requestedChildId) {
+          delete token.activeChildId
+        } else if (token.role === 'parent' && token.id) {
+          await connectDB()
+          const child = await Student.findOne({ _id: requestedChildId, parentId: token.id }).select('_id').lean() as any
+          if (child) token.activeChildId = child._id.toString()
+        }
       }
 
       // Fetch student-specific data on first sign-in only (when user object present)
@@ -103,6 +112,7 @@ export const authConfig: NextAuthConfig = {
       session.user.id = token.id as string
       session.user.role = token.role as UserRole
       session.user.isPremium = (token.isPremium as boolean) ?? false
+      session.user.activeChildId = token.activeChildId as string | undefined
 
       if (token.role === 'student') {
         session.user.displayName = token.displayName as string

@@ -4,7 +4,9 @@
 
 // ---- ENUMS ------------------------------------------------
 
-export type UserRole = 'student' | 'parent' | 'teacher' | 'admin'
+// `student` remains for legacy records while accounts are migrated. New learners
+// are `child` profiles and never authenticate independently.
+export type UserRole = 'student' | 'parent' | 'child' | 'teacher' | 'admin'
 
 export type SubscriptionPlan = 'free' | 'monthly' | 'annual' | 'family'
 export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'trialing' | 'past_due'

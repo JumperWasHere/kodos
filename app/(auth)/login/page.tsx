@@ -53,15 +53,14 @@ export default function LoginPage() {
       // Fetch session to get role-based redirect
       const sessionRes = await fetch('/api/auth/session')
       const session = await sessionRes.json()
-      const role = session?.user?.role ?? 'student'
+      const role = session?.user?.role ?? 'parent'
 
       const redirectMap: Record<string, string> = {
-        student: '/student/dashboard',
-        parent: '/parent/dashboard',
+        parent: '/profiles',
         teacher: '/teacher/dashboard',
         admin: '/admin/dashboard',
       }
-      router.push(redirectMap[role] ?? '/student/dashboard')
+      router.push(redirectMap[role] ?? '/profiles')
     } catch (err) {
       toast.error('Something went wrong. Please try again.')
     } finally {
@@ -71,7 +70,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true)
-    await signIn('google', { callbackUrl: '/parent/dashboard' })
+    await signIn('google', { callbackUrl: '/profiles' })
   }
 
   return (
@@ -170,12 +169,10 @@ export default function LoginPage() {
         <p className="text-xs font-bold text-purple-700 mb-2">🧪 Demo Accounts:</p>
         <div className="grid grid-cols-2 gap-2 text-xs text-purple-600 font-medium">
           <div>
-            <div>student@kidos.my</div>
             <div>parent@kidos.my</div>
           </div>
           <div>
-            <div>teacher@kidos.my</div>
-            <div>admin@kidos.my</div>
+            <div>Parent accounts only</div>
           </div>
         </div>
         <p className="text-xs text-purple-500 mt-1">Password: see role + @123 (e.g., Student@123)</p>

@@ -7,6 +7,8 @@ export interface IUserDocument extends Document {
   password?: string
   avatar?: string
   role: UserRole
+  parentId?: Schema.Types.ObjectId
+  profileMetadata?: Record<string, unknown>
   isEmailVerified: boolean
   emailVerificationToken?: string
   emailVerificationExpiry?: Date
@@ -24,8 +26,11 @@ const UserSchema = new Schema<IUserDocument>(
     name: { type: String, required: true, trim: true, maxlength: 100 },
     email: {
       type: String,
-      required: true,
+      required: function (this: IUserDocument) { return this.role !== 'child' },
+      // Sparse lets child profiles have no email while preserving uniqueness for
+      // every real account email.
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
@@ -34,9 +39,11 @@ const UserSchema = new Schema<IUserDocument>(
     avatar: { type: String, default: '' },
     role: {
       type: String,
-      enum: ['student', 'parent', 'teacher', 'admin'],
+      enum: ['student', 'parent', 'child', 'teacher', 'admin'],
       required: true,
     },
+    parentId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    profileMetadata: { type: Schema.Types.Mixed, default: {} },
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
     emailVerificationExpiry: { type: Date, select: false },
@@ -54,6 +61,7 @@ const UserSchema = new Schema<IUserDocument>(
 )
 
 UserSchema.index({ role: 1 })
+UserSchema.index({ parentId: 1, role: 1 })
 
 export const User = models.User || model<IUserDocument>('User', UserSchema)
 export default User

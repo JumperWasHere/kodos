@@ -12,6 +12,7 @@ declare module 'next-auth' {
       level?: number
       xp?: number
       studentId?: string
+      activeChildId?: string
     }
   }
   interface User extends DefaultUser {
@@ -29,5 +30,6 @@ declare module 'next-auth/jwt' {
     level?: number
     xp?: number
     studentId?: string
+    activeChildId?: string
   }
 }

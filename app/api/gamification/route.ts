@@ -1,36 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
-import { connectDB } from '@/lib/db/connect'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { Student } from '@/lib/db/models'
 
 // GET /api/gamification/student — Get current student's gamification data
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    await connectDB()
-
-    const student = await Student.findOne({ userId: session.user.id })
+    const student = await getActiveChild()
+    if (!student) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const populatedStudent = await Student.findById(student._id)
       .populate('badges', 'name emoji rarity description xpReward')
       .lean() as any
 
-    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    if (!populatedStudent) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
     return NextResponse.json({
       success: true,
       data: {
-        xp: student.xp,
-        level: student.level,
-        coins: student.coins,
-        gems: student.gems,
-        streakDays: student.streakDays,
-        longestStreak: student.longestStreak,
-        totalLoginDays: student.totalLoginDays,
-        badges: student.badges,
-        lastDailyRewardDate: student.lastDailyRewardDate,
-        dailyRewardStreak: student.dailyRewardStreak,
-        virtualPet: student.virtualPet,
+        xp: populatedStudent.xp, level: populatedStudent.level, coins: populatedStudent.coins, gems: populatedStudent.gems,
+        streakDays: populatedStudent.streakDays, longestStreak: populatedStudent.longestStreak, totalLoginDays: populatedStudent.totalLoginDays,
+        badges: populatedStudent.badges, lastDailyRewardDate: populatedStudent.lastDailyRewardDate,
+        dailyRewardStreak: populatedStudent.dailyRewardStreak, virtualPet: populatedStudent.virtualPet,
       },
     })
   } catch (error) {
@@ -42,11 +31,7 @@ export async function GET(req: NextRequest) {
 // POST /api/gamification/daily-reward — Claim daily reward
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    await connectDB()
-    const student = await Student.findOne({ userId: session.user.id })
+    const student = await getActiveChild()
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
     const now = new Date()

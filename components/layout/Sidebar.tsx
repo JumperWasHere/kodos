@@ -8,7 +8,7 @@ import {
   Flame, Zap, Menu, X, CreditCard, BookMarked,
   Users, BarChart3, Settings, ClipboardList
 } from 'lucide-react'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/uiStore'
 import { useGamificationStore } from '@/store/gamificationStore'
@@ -51,6 +51,7 @@ const ADMIN_NAV: NavItem[] = [
 
 const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   student: STUDENT_NAV,
+  child: STUDENT_NAV,
   parent: PARENT_NAV,
   teacher: TEACHER_NAV,
   admin: ADMIN_NAV,
@@ -194,8 +195,14 @@ export function Sidebar({ role, user }: SidebarProps) {
 }
 
 // Top Navigation Bar
-export function TopNav({ role, userName }: { role: UserRole; userName: string }) {
+export function TopNav({ role, userName, showProfileSwitcher = false }: { role: UserRole; userName: string; showProfileSwitcher?: boolean }) {
   const { toggleSidebar } = useUIStore()
+  const { update } = useSession()
+
+  const switchProfile = async () => {
+    await update({ activeChildId: null })
+    window.location.assign('/profiles')
+  }
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-border flex items-center px-4 gap-4">
@@ -207,6 +214,7 @@ export function TopNav({ role, userName }: { role: UserRole; userName: string })
       </button>
       <div className="flex-1" />
       <div className="flex items-center gap-3">
+        {showProfileSwitcher && <button onClick={switchProfile} className="rounded-xl px-3 py-1.5 text-sm font-semibold text-violet-700 hover:bg-violet-50">Switch Profile</button>}
         <span className="text-sm font-semibold text-muted-foreground hidden sm:block">
           Hi, {userName.split(' ')[0]}!
         </span>
