@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Clock, Zap } from 'lucide-react'
 import QuizGame from '@/components/subjects/QuizGame'
 import StoryPlayer from '@/components/subjects/StoryPlayer'
+import { MatchingPuzzle } from '@/components/subjects/MatchingPuzzle'
+import type { MatchingPuzzleGameData } from '@/components/subjects/MatchingPuzzle'
 import type { AgeGroup, LearningPoint, LessonLanguage, QuizQuestion, StoryPage } from '@/types'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -32,6 +34,7 @@ interface Props {
     worksheetUrl?: string
     storyPages?: StoryPage[]
     isPremium: boolean
+    gameData?: Record<string, unknown>
   }
   subject: {
     name: string
@@ -83,6 +86,23 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
     } finally {
       setIsCompleting(false)
     }
+  }
+
+  // Render matching puzzle for game lessons with gameData.gameType === 'matching'
+  if (lesson.type === 'game' && (lesson.gameData as unknown as MatchingPuzzleGameData | undefined)?.gameType === 'matching') {
+    return (
+      <MatchingPuzzle
+        lessonId={lesson._id}
+        title={lesson.title}
+        ageGroup={lesson.ageGroup ?? 'lower_primary'}
+        language={lesson.language ?? 'en'}
+        xpReward={lesson.xpReward}
+        coinReward={lesson.coinReward}
+        gameData={lesson.gameData as unknown as MatchingPuzzleGameData}
+        onComplete={handleComplete}
+        onBack={handleBack}
+      />
+    )
   }
 
   // Render quiz for quiz/game/interactive types

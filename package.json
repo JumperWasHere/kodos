@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "seed": "tsx --env-file=.env.local lib/db/seed.ts",
     "seed:toddler": "tsx --env-file=.env.local lib/db/add-toddler-content.ts",
+    "seed:matching": "tsx --env-file=.env.local lib/db/seed-matching.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

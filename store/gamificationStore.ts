@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { xpForLevel, totalXPForLevel, getLevelFromXP } from '@/lib/utils'
+import { getLevelFromXP } from '@/lib/utils'
 
 interface XPGain {
   amount: number
@@ -31,18 +31,6 @@ interface GamificationState {
   clearNewBadges: () => void
   addNewBadge: (badgeId: string) => void
   syncWithServer: (data: Partial<GamificationState>) => void
-}
-
-// Level math lives in lib/utils so API routes share the same curve.
-export { xpForLevel, totalXPForLevel, getLevelFromXP }
-
-export function getXPProgress(xp: number): { current: number; required: number; percentage: number } {
-  const level = getLevelFromXP(xp)
-  const totalForCurrentLevel = totalXPForLevel(level)
-  const required = xpForLevel(level)
-  const current = xp - totalForCurrentLevel
-  const percentage = Math.min((current / required) * 100, 100)
-  return { current, required, percentage }
 }
 
 export const useGamificationStore = create<GamificationState>()(
