@@ -1,8 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { cn, formatXP } from '@/lib/utils'
-import { getXPProgress } from '@/store/gamificationStore'
+import { cn, formatXP, getXPProgress } from '@/lib/utils'
 
 interface XPBarProps {
   xp: number

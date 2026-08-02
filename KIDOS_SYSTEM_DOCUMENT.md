@@ -1,5 +1,5 @@
 # KidOS — System Documentation
-> Last updated: 2026-07-28
+> Last updated: 2026-08-02
 
 ---
 
@@ -105,12 +105,14 @@ kidos/
 │       ├── users/
 │       │   ├── register/         # User registration (with age group)
 │       │   └── profile/          # Update own name / change password
+│       ├── matching/
+│       │   └── items/            # GET /api/matching/items — random items by category+ageGroup
 │       └── stripe/               # checkout, portal, webhook
 │
 ├── components/
-│   ├── gamification/             # XPBar, StreakCounter, Leaderboard, Modals
+│   ├── gamification/             # XPBar, StreakCounter, Leaderboard, Modals, CelebrationModal
 │   ├── layout/                   # Sidebar
-│   ├── subjects/                 # QuizGame (MC, true/false, fill-in-the-blank, images)
+│   ├── subjects/                 # QuizGame, MatchingPuzzle (tap/memory game), StoryPlayer
 │   ├── teacher/                  # QuizForm (quiz builder), ImageUpload
 │   └── ui/                       # badge, button, card, input, progress
 │
@@ -122,9 +124,10 @@ kidos/
 │   │   └── config.edge.ts        # NextAuth config (Edge runtime — middleware only)
 │   ├── db/
 │   │   ├── connect.ts            # MongoDB connection with global cache
-│   │   ├── seed.ts               # Seed script
-│   │   ├── models/               # Mongoose models
-│   │   └── seeds/                # Lesson seed data per subject
+│   │   ├── seed.ts               # Full destructive seed (wipes DB)
+│   │   ├── seed-matching.ts      # Idempotent matching-puzzle seed (items + 8 sample lessons)
+│   │   ├── models/               # Mongoose models (incl. MatchingItem)
+│   │   └── seeds/                # Lesson seed data per subject + matching-items.ts
 │   ├── validations/
 │   │   └── lesson.ts             # Zod schemas for quiz/lesson input
 │   └── stripe/config.ts          # Stripe client config
@@ -362,6 +365,28 @@ Subscription ──────┬──► User (ref: userId)
 
 **Indexes**: `(studentId, lessonId)` unique; `(studentId, subjectSlug)`; `(studentId, status)`
 
+#### MatchingItem
+| Field | Type | Notes |
+|-------|------|-------|
+| category | String | animals / plants / colors / shapes (extensible via seed) |
+| slug | String | unique; e.g. `animals-lion` |
+| label | String | English display name |
+| labelMs | String | Bahasa Malaysia name |
+| emoji | String | primary visual (fallback when no imageUrl) |
+| imageUrl | String | optional `/illustrations/matching/<cat>/<slug>.webp` |
+| colorHex | String | colors category only — actual hex value |
+| colorClass | String | colors category only — Tailwind class |
+| audioText | String | TTS text (defaults to label) |
+| audioTextMs | String | TTS text in Malay |
+| ageGroups | String[] | applicable age groups |
+| difficulty | Number | 1=toddler, 2=preschool, 3=lower_primary, 4=upper_primary |
+| sortOrder | Number | display ordering |
+| isActive | Boolean | soft-disable |
+
+**Indexes**: `(category, ageGroups, isActive)` for efficient filtering; `slug` unique.
+
+**Seeded counts** (via `npm run seed:matching`): 20 animals · 15 plants · 12 colors · 10 shapes = 57 items total.
+
 #### Badge
 | Field | Type | Notes |
 |-------|------|-------|
@@ -451,6 +476,7 @@ Subscription ──────┬──► User (ref: userId)
 | POST | `/api/stripe/checkout` | Create Stripe checkout session | Required |
 | POST | `/api/stripe/portal` | Open Stripe billing portal | Required |
 | POST | `/api/stripe/webhook` | Handle Stripe events (raw body) | Stripe sig |
+| GET | `/api/matching/items` | Random matching-puzzle items (`?categories=animals,plants&ageGroup=toddler&count=6`) | Required |
 
 **Authorization model**: teacher routes accept `teacher` or `admin` roles; ownership is enforced per document (`Lesson.createdBy`, `Class.teacherId`, `Assignment.teacherId`) — teachers manage only their own content, admins manage any.
 
@@ -536,6 +562,7 @@ Subscription ──────┬──► User (ref: userId)
 - [x] Railway deployment
 - [x] PWA (manifest + service worker)
 - [x] Database seed script (all 9 subjects + lessons + badges + users) — **wipes all collections first**
+- [x] `npm run seed:matching` — idempotent seed for MatchingItem catalog + 8 sample matching-puzzle Lesson records
 
 ---
 
@@ -558,6 +585,7 @@ Subscription ──────┬──► User (ref: userId)
 - [ ] Worksheet download
 - [ ] In-app coin/gem shop
 - [ ] `drag_drop` / `match` question types (schema exists, no player UI)
+- [x] **Matching Puzzle** mini-game (`components/subjects/MatchingPuzzle.tsx`): tap mode (toddler/preschool) and memory-flip mode (lower/upper primary), fetches items from `/api/matching/items`, XP/coin rewards, CelebrationModal on completion
 
 #### Parent Features
 - [ ] Real parent dashboard (currently mock — `Student.parentId` exists but is unused)
@@ -642,8 +670,9 @@ railway up --detach
 
 ### Seed Database (Local)
 ```bash
-npm run seed
-# Uses .env.local for MONGODB_URI
+npm run seed           # Full destructive seed — wipes all collections
+npm run seed:toddler   # Non-destructive toddler-content refresh
+npm run seed:matching  # Idempotent matching-puzzle items + 8 sample lessons
 ```
 
 ### Seed Accounts (After Seeding)
@@ -661,6 +690,30 @@ npm run seed
 ---
 
 ## 11. Changelog
+
+### 2026-08-02 — Matching Puzzle mini-game (full feature)
+
+**New model**
+- `lib/db/models/MatchingItem.ts` — Mongoose schema for the matching-puzzle item catalog. Fields: `category`, `slug` (unique), `label`/`labelMs`, `emoji`, `imageUrl?`, `colorHex?`/`colorClass?`, `audioText`/`audioTextMs`, `ageGroups[]`, `difficulty` (1–4), `sortOrder`, `isActive`. Indexes: `(category, ageGroups, isActive)` + unique slug.
+- Exported from `lib/db/models/index.ts`.
+
+**New seed data & script**
+- `lib/db/seeds/matching-items.ts` — 57 catalog items: 20 animals · 15 plants · 12 colors · 10 shapes. Items are tagged with the appropriate `ageGroups` (toddler difficulty-1 items only for youngest, exotic/specialist items for upper_primary).
+- `lib/db/seed-matching.ts` — idempotent seed runner (`npm run seed:matching`). Uses `bulkWrite` upsert-by-slug for items; upserts 8 sample Lesson records (one pair per age group × two category combos) with `gameData.gameType: 'matching'`.
+- `package.json` — added `"seed:matching"` script.
+
+**New API route**
+- `GET /api/matching/items` (`app/api/matching/items/route.ts`) — validates `?categories=`, optional `?ageGroup=`, optional `?count=` (max 20). Uses MongoDB `$sample` for random selection. Returns `{ success: true, data: FetchedItem[] }`.
+
+**New components**
+- `components/gamification/CelebrationModal.tsx` — reusable `CelebrationModal` overlay. Props: `stars` (0–3), `xpEarned`, `coinsEarned`, `mascot?` emoji, `title?`, `subtitle?`, `onRestart?`, `onHome`, `onNext?`, `soundEnabled?`. Features: react-confetti (≥2 stars), sequential spring-animated star rating, bouncing mascot emoji, XP+coin reward tiles, icon-first action buttons (min 72×72 px for pre-readers), `playCelebrationSound()` on mount. z-index 60 (above MatchingPuzzle overlay at z-50).
+- `components/subjects/MatchingPuzzle.tsx` — self-contained matching puzzle game for ages 1–12. Exports `MatchingPuzzleGameData` interface. Phase state machine: `loading → intro → playing → complete`. **Tap mode** (toddler/preschool): two-column layout, no penalty for wrong taps. **Memory mode** (lower/upper primary): standard concentration rules, 900 ms flip-back delay with `isLocked` guard. Full-screen fixed overlay with iOS safe-area insets. Age-group gradient backgrounds. Minimum card sizes: toddler 120 px, upper_primary 68 px. All touch targets ≥48 px.
+
+**Modified files**
+- `app/(student)/student/subjects/[subject]/[lesson]/LessonPlayerClient.tsx` — added `gameData?: Record<string, unknown>` to the lesson prop, import of `MatchingPuzzle` + `MatchingPuzzleGameData`, and a routing branch: if `lesson.type === 'game'` and `gameData.gameType === 'matching'`, render `<MatchingPuzzle …/>` before the existing QuizGame branch.
+
+**New doc**
+- `TODO_ASSETS.md` — full asset requirements for the matching puzzle: 57 illustration slots (WebP 256×256 min) across animals, plants, colors, shapes, with naming conventions and a future-categories table.
 
 ### 2026-07-29 — Claude Code workspace configuration
 - Added `CLAUDE.md` (root: shared rules, model routing policy, mandatory doc-sync rule),

@@ -132,6 +132,15 @@ export function getLevelFromXP(xp: number): number {
   return level
 }
 
+export function getXPProgress(xp: number): { current: number; required: number; percentage: number } {
+  const level = getLevelFromXP(xp)
+  const totalForCurrentLevel = totalXPForLevel(level)
+  const required = xpForLevel(level)
+  const current = xp - totalForCurrentLevel
+  const percentage = Math.min((current / required) * 100, 100)
+  return { current, required, percentage }
+}
+
 export function calculateLevel(xp: number): number {
   return getLevelFromXP(xp)
 }

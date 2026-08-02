@@ -11,7 +11,8 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { XPBar } from '@/components/gamification/XPBar'
 import { StreakCounter, RewardCoins } from '@/components/gamification/StreakCounter'
-import { useGamificationStore, getXPProgress } from '@/store/gamificationStore'
+import { useGamificationStore } from '@/store/gamificationStore'
+import { getXPProgress } from '@/lib/utils'
 import {
   cn, getSubjectIcon, getSubjectGradient, getSubjectColor,
   formatXP, percentOf, MOTIVATION_MESSAGES, randomFrom
