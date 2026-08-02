@@ -1,5 +1,5 @@
 import { Types } from 'mongoose'
-import { auth } from '@/lib/auth/config'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { connectDB } from '@/lib/db/connect'
 import Lesson from '@/lib/db/models/Lesson'
 import Subject from '@/lib/db/models/Subject'
@@ -13,15 +13,15 @@ interface Props {
 
 export default async function LessonPlayerPage({ params }: Props) {
   const { subject: slug, lesson: lessonId } = await params
-  const [session] = await Promise.all([auth(), connectDB()])
-  if (!session?.user?.id) return null
+  const [activeChild] = await Promise.all([getActiveChild(), connectDB()])
+  if (!activeChild) return null
 
   if (!Types.ObjectId.isValid(lessonId)) notFound()
 
   const [lesson, subject, student] = await Promise.all([
     Lesson.findOne({ _id: lessonId, subjectSlug: slug, isActive: true }).lean() as any,
     Subject.findOne({ slug, isActive: true }).lean() as any,
-    Student.findOne({ userId: session.user.id }).lean() as any,
+    Student.findById(activeChild._id).lean() as any,
   ])
 
   if (!lesson || !subject) notFound()
@@ -34,7 +34,7 @@ export default async function LessonPlayerPage({ params }: Props) {
       lesson={JSON.parse(JSON.stringify(lesson))}
       subject={JSON.parse(JSON.stringify(subject))}
       isPremium={isPremium}
-      studentId={session.user.studentId ?? ''}
+      studentId={activeChild._id.toString()}
     />
   )
 }

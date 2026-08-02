@@ -11,8 +11,6 @@ import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { UserRole } from '@/types'
-import { cn } from '@/lib/utils'
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -23,33 +21,16 @@ const signupSchema = z.object({
     .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Must contain at least one number'),
   confirmPassword: z.string(),
-  role: z.enum(['student', 'parent', 'teacher']),
-  ageGroup: z.enum(['toddler', 'preschool', 'lower_primary', 'upper_primary']).optional(),
+  isParent: z.literal(true, { errorMap: () => ({ message: 'Only parents can create an account' }) }),
   agreeToTerms: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to the terms' }),
   }),
 }).refine((d) => d.password === d.confirmPassword, {
   path: ['confirmPassword'],
   message: 'Passwords do not match',
-}).refine((d) => d.role !== 'student' || !!d.ageGroup, {
-  path: ['ageGroup'],
-  message: 'Please pick an age group',
 })
 
 type SignupData = z.infer<typeof signupSchema>
-
-const ROLES = [
-  { value: 'parent' as UserRole, label: 'Parent', emoji: '👨‍👩‍👧', desc: 'Manage your children' },
-  { value: 'student' as UserRole, label: 'Student', emoji: '🎒', desc: 'Learn & earn rewards' },
-  { value: 'teacher' as UserRole, label: 'Teacher', emoji: '👩‍🏫', desc: 'Manage your class' },
-]
-
-const AGE_GROUPS = [
-  { value: 'toddler', label: 'Little Ones', desc: 'Ages 1–3', emoji: '👶' },
-  { value: 'preschool', label: 'Preschool', desc: 'Ages 3–6', emoji: '🧸' },
-  { value: 'lower_primary', label: 'Lower Primary', desc: 'Ages 7–9 · Year 1–3', emoji: '✏️' },
-  { value: 'upper_primary', label: 'Upper Primary', desc: 'Ages 10–12 · Year 4–6', emoji: '🎓' },
-] as const
 
 export default function SignupPage() {
   const router = useRouter()
@@ -59,16 +40,11 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<SignupData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { role: 'parent' },
+    defaultValues: { isParent: true },
   })
-
-  const selectedRole = watch('role')
-  const selectedAgeGroup = watch('ageGroup')
 
   const onSubmit = async (data: SignupData) => {
     setIsLoading(true)
@@ -80,8 +56,7 @@ export default function SignupPage() {
           name: data.name,
           email: data.email,
           password: data.password,
-          role: data.role,
-          ...(data.role === 'student' && data.ageGroup ? { ageGroup: data.ageGroup } : {}),
+          isParent: data.isParent,
         }),
       })
 
@@ -115,55 +90,11 @@ export default function SignupPage() {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Role selection */}
-        <div>
-          <label className="block text-sm font-bold mb-2">I am a...</label>
-          <div className="grid grid-cols-3 gap-2">
-            {ROLES.map((role) => (
-              <button
-                key={role.value}
-                type="button"
-                onClick={() => setValue('role', role.value as 'student' | 'parent' | 'teacher')}
-                className={cn(
-                  'flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all text-center',
-                  selectedRole === role.value
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-gray-200 hover:border-gray-300'
-                )}
-              >
-                <span className="text-2xl">{role.emoji}</span>
-                <span className="font-bold text-xs">{role.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4">
+          <p className="font-bold">Are you a Parent? 👨‍👩‍👧</p>
+          <p className="mt-1 text-sm text-muted-foreground">Parents create an account, then add child learning profiles after logging in.</p>
+          <input type="hidden" {...register('isParent')} />
         </div>
-
-        {/* Age group (students only) */}
-        {selectedRole === 'student' && (
-          <div>
-            <label className="block text-sm font-bold mb-2">My age group is...</label>
-            <div className="grid grid-cols-2 gap-2">
-              {AGE_GROUPS.map((group) => (
-                <button
-                  key={group.value}
-                  type="button"
-                  onClick={() => setValue('ageGroup', group.value, { shouldValidate: true })}
-                  className={cn(
-                    'flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all text-center',
-                    selectedAgeGroup === group.value
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <span className="text-2xl">{group.emoji}</span>
-                  <span className="font-bold text-xs">{group.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{group.desc}</span>
-                </button>
-              ))}
-            </div>
-            {errors.ageGroup && <p className="text-red-500 text-xs mt-1">{errors.ageGroup.message}</p>}
-          </div>
-        )}
 
         {/* Name */}
         <div>
@@ -239,7 +170,7 @@ export default function SignupPage() {
         {errors.agreeToTerms && <p className="text-red-500 text-xs -mt-3">{errors.agreeToTerms.message}</p>}
 
         <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '🎉 Create Free Account'}
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '🎉 Create Parent Account'}
         </Button>
       </form>
     </motion.div>

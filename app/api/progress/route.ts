@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
-import { auth } from '@/lib/auth/config'
-import { connectDB } from '@/lib/db/connect'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { Progress, Student, Lesson, Badge } from '@/lib/db/models'
 import { getLevelFromXP } from '@/lib/utils'
 import { z } from 'zod'
@@ -9,16 +8,10 @@ import { z } from 'zod'
 // GET /api/progress?studentId=xxx
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    await connectDB()
+    const student = await getActiveChild()
+    if (!student) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { searchParams } = new URL(req.url)
-    const studentId = searchParams.get('studentId')
     const subjectSlug = searchParams.get('subjectSlug')
-
-    const student = await Student.findOne({ userId: session.user.id }).lean() as any
-    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
     const filter: Record<string, unknown> = { studentId: student._id }
     if (subjectSlug) filter.subjectSlug = subjectSlug
@@ -61,8 +54,8 @@ function answersMatch(expected: string | string[], submitted: string | string[] 
 // POST /api/progress — Complete/update a lesson
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.studentId) {
+    const activeChild = await getActiveChild()
+    if (!activeChild) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -78,11 +71,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid lesson id' }, { status: 400 })
     }
 
-    await connectDB()
-
     const [lesson, student] = await Promise.all([
       Lesson.findOne({ _id: lessonId, isActive: true }).lean() as any,
-      Student.findById(session.user.studentId),
+      Student.findById(activeChild._id),
     ])
 
     if (!lesson || !student) {

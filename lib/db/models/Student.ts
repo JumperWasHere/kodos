@@ -77,6 +77,8 @@ const SubjectProgressSchema = new Schema<ISubjectProgress>(
 
 const StudentSchema = new Schema<IStudentDocument>(
   {
+    // The linked User is a non-authenticating child profile. parentId is the
+    // authenticated account that owns this learner.
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     displayName: { type: String, required: true, trim: true, maxlength: 50 },
     ageGroup: {

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth/config'
+import { getActiveChild } from '@/lib/auth/active-child'
 import { connectDB } from '@/lib/db/connect'
 import Student from '@/lib/db/models/Student'
 import Subject from '@/lib/db/models/Subject'
@@ -41,18 +41,18 @@ async function getAssignments(studentId: string | undefined) {
 }
 
 export default async function StudentDashboardPage() {
-  const [session] = await Promise.all([auth(), connectDB()])
-  if (!session?.user?.id) return null
+  const [activeChild] = await Promise.all([getActiveChild(), connectDB()])
+  if (!activeChild) return null
 
   const [rawStudent, subjects, assignments] = await Promise.all([
-    Student.findOne({ userId: session.user.id })
+    Student.findById(activeChild._id)
       .populate('badges', 'name emoji rarity')
       .lean(),
     Subject.find({ isActive: true })
       .sort({ order: 1 })
       .limit(9)
       .lean(),
-    getAssignments(session.user.studentId),
+    getAssignments(activeChild._id.toString()),
   ])
   const student = rawStudent as any
 
@@ -77,7 +77,7 @@ export default async function StudentDashboardPage() {
       subjects={JSON.parse(JSON.stringify(subjects))}
       dailyTasks={dailyTasks}
       assignments={assignments}
-      userName={session.user.displayName || session.user.name || 'Explorer'}
+      userName={activeChild.displayName || 'Explorer'}
       dailyRewardClaimed={student?.lastDailyRewardDate ? new Date(student.lastDailyRewardDate) >= startOfToday : false}
     />
   )

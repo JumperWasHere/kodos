@@ -14,7 +14,7 @@ export const authConfigEdge: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as { role?: UserRole }).role ?? 'student'
+        token.role = (user as { role?: UserRole }).role ?? 'parent'
       }
       return token
     },
@@ -22,6 +22,7 @@ export const authConfigEdge: NextAuthConfig = {
       session.user.id = token.id as string
       session.user.role = token.role as UserRole
       session.user.isPremium = (token.isPremium as boolean) ?? false
+      session.user.activeChildId = token.activeChildId as string | undefined
       return session
     },
   },
