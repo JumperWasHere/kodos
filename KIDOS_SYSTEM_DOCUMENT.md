@@ -1,5 +1,5 @@
 # KidOS — System Documentation
-> Last updated: 2026-08-02
+> Last updated: 2026-10-07
 
 ---
 
@@ -548,11 +548,12 @@ Subscription ──────┬──► User (ref: userId)
 - [x] `/parent/subscription` page — plan cards, checkout, billing portal, success/cancel banners (Stripe redirect target)
 
 #### Parent Features
-- [x] Parent dashboard (still mock data)
+- [x] Real parent dashboard (`/parent/dashboard`) — live child cards, subject progress bars, weekly learning activity, and quick "View as Child" profile switcher
+- [x] Add child profile modal (integrated with `/api/profiles`)
 - [x] Subscription management page
 
 #### Admin Features
-- [x] Admin dashboard (still mock data)
+- [x] Real admin dashboard (`/admin/dashboard`) — live platform KPIs (total users, published lessons, active subscriptions, estimated revenue), recent sign-ups roster, and navigation
 - [x] Access to teacher quiz management (can edit any quiz)
 
 #### Infrastructure
@@ -563,6 +564,7 @@ Subscription ──────┬──► User (ref: userId)
 - [x] PWA (manifest + service worker)
 - [x] Database seed script (all 9 subjects + lessons + badges + users) — **wipes all collections first**
 - [x] `npm run seed:matching` — idempotent seed for MatchingItem catalog + 8 sample matching-puzzle Lesson records
+- [x] Legal pages: `/terms` and `/privacy` for onboarding and account compliance
 
 ---
 
@@ -574,24 +576,22 @@ Subscription ──────┬──► User (ref: userId)
 - [ ] Session refresh of `isPremium` after Stripe payment (currently requires re-login)
 
 #### Gamification
-- [ ] Badge **awarding** logic (badges are seeded with requirements but never granted)
-- [ ] Server-side streak updates on login / lesson completion (only the daily-reward claim updates it)
-- [ ] Weekly / monthly leaderboard periods (tabs exist but data is all-time only)
+- [x] Badge **awarding** logic (evaluated and awarded on lesson completion with bonus XP/coin rewards and celebration toasts)
+- [x] Server-side streak updates on login / lesson completion (auto-increments consecutive daily learning streaks)
+- [x] Weekly / monthly leaderboard periods (aggregated from `Progress` with period filtering)
 
 #### Student Features
 - [ ] Avatar customization UI
 - [ ] Lesson video player
-- [ ] Interactive story lessons (`storyPages` schema exists, no player)
+- [ ] Interactive story lessons (`storyPages` schema exists, player for authored stories)
 - [ ] Worksheet download
 - [ ] In-app coin/gem shop
 - [ ] `drag_drop` / `match` question types (schema exists, no player UI)
 - [x] **Matching Puzzle** mini-game (`components/subjects/MatchingPuzzle.tsx`): tap mode (toddler/preschool) and memory-flip mode (lower/upper primary), fetches items from `/api/matching/items`, XP/coin rewards, CelebrationModal on completion
 
 #### Parent Features
-- [ ] Real parent dashboard (currently mock — `Student.parentId` exists but is unused)
-- [ ] Add/manage children profiles
-- [ ] View children's progress reports
 - [ ] Set screen time limits
+- [ ] Detailed child progress export / report card PDF
 
 #### Teacher Features
 - [ ] Student self-join classes via join code (currently teacher adds by email)
@@ -599,10 +599,9 @@ Subscription ──────┬──► User (ref: userId)
 - [ ] Grading & feedback on assignments (completion is auto-derived from quiz results)
 
 #### Admin Features
-- [ ] Real admin dashboard (currently mock)
-- [ ] User management (CRUD)
+- [ ] User management (CRUD actions: ban, role switch, reset)
 - [ ] Subject management UI (API exists: `POST /api/subjects`)
-- [ ] Subscription analytics / revenue dashboard
+- [ ] Detailed Stripe subscription / revenue webhook dashboard
 
 #### Content
 - [ ] Real video lesson content
@@ -610,7 +609,7 @@ Subscription ──────┬──► User (ref: userId)
 
 #### Payments
 - [ ] Real Stripe product IDs configured
-- [ ] Family plan child management
+- [ ] Family plan child seat enforcement
 
 #### Other
 - [ ] Google OAuth redirect URIs updated to production URL
@@ -618,7 +617,6 @@ Subscription ──────┬──► User (ref: userId)
 - [ ] PWA icons + favicon (referenced in manifest/layout but missing from `public/`)
 - [ ] Push notifications (PWA)
 - [ ] Offline mode (service worker caching)
-- [ ] `/terms` and `/privacy` pages (linked from signup)
 
 ---
 
@@ -690,6 +688,25 @@ npm run seed:matching  # Idempotent matching-puzzle items + 8 sample lessons
 ---
 
 ## 11. Changelog
+
+### 2026-10-07 — Real Parent & Admin Dashboards, Badge/Streak Rewards & Auth Fixes
+
+**New components & pages**
+- `app/(parent)/parent/dashboard/ParentDashboardClient.tsx` — live parent dashboard with child cards, real progress indicators, weekly activity breakdown, "View as Child" profile switcher, and interactive "Add Child" modal.
+- `app/(parent)/parent/dashboard/page.tsx` — transformed to Server Component querying MongoDB `Student`, `Progress`, and `Subscription` models for the authenticated parent.
+- `app/(admin)/admin/dashboard/AdminDashboardClient.tsx` — live admin dashboard with platform KPIs, subscription distribution pie chart, revenue chart, and recent user registrations list.
+- `app/(admin)/admin/dashboard/page.tsx` — transformed to Server Component aggregating live platform counts and active MRR.
+
+**Gamification & Progress**
+- `app/api/progress/route.ts` — automatic daily streak updates on lesson completion (evaluating consecutive day jumps and longest streaks).
+- `app/api/progress/route.ts` — bonus XP and coins automatically awarded upon badge unlocking; newly earned badges are returned in the response payload.
+- `app/(student)/student/subjects/[subject]/[lesson]/LessonPlayerClient.tsx` — toasts congratulatory badge unlock notifications (`🎉 Unlocked Badge: [emoji] [name]!`) immediately on lesson completion.
+
+**Authentication & Session**
+- `lib/auth/active-child.ts` — fixed `getActiveChild()` to resolve students directly by `userId` when `session.user.role === 'student'`, fixing blank dashboard/achievements and 401s for direct student accounts.
+
+**Code Quality & Linting**
+- `eslint.config.mjs` — ignored auto-generated `next-env.d.ts` in ESLint config, restoring 0-error clean lint status for `npm run lint`.
 
 ### 2026-08-02 — Matching Puzzle mini-game (full feature)
 

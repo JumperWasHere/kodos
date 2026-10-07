@@ -64,6 +64,11 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
 
     if (!response.ok) throw new Error('Unable to save lesson progress')
     const payload = await response.json()
+    if (payload.data?.newBadges?.length) {
+      payload.data.newBadges.forEach((badge: { name: string; emoji?: string }) => {
+        toast.success(`🎉 Unlocked Badge: ${badge.emoji || '🏅'} ${badge.name}!`, { duration: 5000 })
+      })
+    }
     return payload.data as { xpEarned: number; coinsEarned: number }
   }
 
@@ -80,6 +85,11 @@ export default function LessonPlayerClient({ lesson, subject, studentId }: Props
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error)
+      if (payload.data?.newBadges?.length) {
+        payload.data.newBadges.forEach((badge: { name: string; emoji?: string }) => {
+          toast.success(`🎉 Unlocked Badge: ${badge.emoji || '🏅'} ${badge.name}!`, { duration: 5000 })
+        })
+      }
       toast.success(payload.data.alreadyCompleted ? 'Lesson already completed!' : `Great work! +${payload.data.xpEarned} XP`)
     } catch {
       toast.error('Unable to save lesson progress. Please try again.')

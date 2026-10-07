@@ -191,16 +191,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Keep the stored level in sync with the shared XP curve
-    const updatedStudent = await Student.findById(student._id).select('xp level').lean() as any
-    if (updatedStudent) {
-      const newLevel = getLevelFromXP(updatedStudent.xp ?? 0)
-      if (newLevel !== updatedStudent.level) {
-        await Student.updateOne({ _id: student._id }, { $set: { level: newLevel } })
+    // Update daily streak on lesson completion
+    const now = new Date()
+    const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    let newStreak = student.streakDays || 1
+    if (student.lastLoginDate) {
+      const lastLogin = new Date(student.lastLoginDate)
+      const lastLoginMidnight = new Date(Date.UTC(lastLogin.getUTCFullYear(), lastLogin.getUTCMonth(), lastLogin.getUTCDate()))
+      const diffDays = Math.round((todayMidnight.getTime() - lastLoginMidnight.getTime()) / (24 * 60 * 60 * 1000))
+      if (diffDays === 1) {
+        newStreak = (student.streakDays || 0) + 1
+      } else if (diffDays > 1) {
+        newStreak = 1
       }
+    } else {
+      newStreak = 1
     }
+    const longestStreak = Math.max(student.longestStreak || 0, newStreak)
+    await Student.updateOne(
+      { _id: student._id },
+      {
+        $set: {
+          streakDays: newStreak,
+          longestStreak,
+          lastLoginDate: now,
+        },
+      }
+    )
 
     // Award newly satisfied badges after the completion has been persisted.
+    let newlyAwardedBadges: Array<{ id: string; name: string; emoji?: string; description: string; xpReward: number; coinReward: number }> = []
     const refreshedStudent = await Student.findById(student._id).select('xp streakDays subjectProgress badges').lean() as any
     if (refreshedStudent) {
       const [completedCount, perfectCount, badges] = await Promise.all([
@@ -212,6 +232,7 @@ export async function POST(req: NextRequest) {
       const earned = badges.filter((badge) => {
         if (owned.has(badge._id.toString())) return false
         const requirement = badge.requirement
+        if (!requirement) return false
         if (requirement.type === 'lessons') return completedCount >= requirement.value
         if (requirement.type === 'xp') return (refreshedStudent.xp ?? 0) >= requirement.value
         if (requirement.type === 'streak') return (refreshedStudent.streakDays ?? 0) >= requirement.value
@@ -222,7 +243,34 @@ export async function POST(req: NextRequest) {
         }
         return false
       })
-      if (earned.length) await Student.updateOne({ _id: student._id }, { $addToSet: { badges: { $each: earned.map((badge) => badge._id) } } })
+      if (earned.length) {
+        const bonusXP = earned.reduce((sum, b) => sum + (b.xpReward || 0), 0)
+        const bonusCoins = earned.reduce((sum, b) => sum + (b.coinReward || 0), 0)
+        await Student.updateOne(
+          { _id: student._id },
+          {
+            $addToSet: { badges: { $each: earned.map((badge) => badge._id) } },
+            $inc: { xp: bonusXP, coins: bonusCoins },
+          }
+        )
+        newlyAwardedBadges = earned.map((b) => ({
+          id: b._id.toString(),
+          name: b.name,
+          emoji: b.emoji,
+          description: b.description,
+          xpReward: b.xpReward || 0,
+          coinReward: b.coinReward || 0,
+        }))
+      }
+    }
+
+    // Keep the stored level in sync with the shared XP curve
+    const finalStudent = await Student.findById(student._id).select('xp level').lean() as any
+    if (finalStudent) {
+      const newLevel = getLevelFromXP(finalStudent.xp ?? 0)
+      if (newLevel !== finalStudent.level) {
+        await Student.updateOne({ _id: student._id }, { $set: { level: newLevel } })
+      }
     }
 
     // Update lesson stats
@@ -237,6 +285,7 @@ export async function POST(req: NextRequest) {
         coinsEarned: earnedCoins,
         score: scorePct,
         progressId: completedProgress!._id,
+        newBadges: newlyAwardedBadges,
       },
     })
   } catch (error) {
